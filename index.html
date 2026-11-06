@@ -157,7 +157,7 @@ function defAgency(code){
     escala:(ve?[[750000001,.5],[800000001,.55],[850000001,.6],[900000001,.65],[950000001,.7],[1000000001,.75],[1200000001,.8],[1250000001,.85]]
               :[[200000000,.5],[250000001,.55],[300000001,.6],[350000001,.65],[400000001,.7],[450000001,.75],[500000001,.8],[550000000,.85]]).map(([meta,pct])=>({meta,pct})),
     comAgPct:3,sueldosPct:29,
-    ventas:{},gastos:[],cierres:{},deudas:[],metas:{}};
+    ventas:{},gastos:[],cierres:{},deudas:[],metas:{},meses:{}};
 }
 let DB;
 function load(){
@@ -197,9 +197,53 @@ function cierreCalc(ag,D){
   const c=ag.cierres[D]||{};const ym=monthOf(D);
   const comMes=monthTotals(ag,ym,D).com,gastosMes=sumGastos(ag,ym+'-01',D),deu=deudaTotal(ag,D),aq=arqueo(c);
   const oi=sumL(c.otrosIng),oe=sumL(c.otrosEgr);
-  const ing=(c.pncAct||0)+(c.pncAnt||0)+comMes+oi;
+  const saldoPrev=saldoPrevOf(ag,ym);
+  const ing=saldoPrev+(c.pncAct||0)+(c.pncAnt||0)+comMes+oi;
   const egr=gastosMes+(c.premios||0)+deu+oe+aq.t;
-  return{c,exists:!!ag.cierres[D],comMes,gastosMes,deu,aq,oi,oe,ing,egr,dif:ing-egr};
+  return{c,exists:!!ag.cierres[D],saldoPrev,comMes,gastosMes,deu,aq,oi,oe,ing,egr,dif:ing-egr};
+}
+/* ---- cierre del mes ---- */
+const mesInfo=(ag,ym)=>(ag.meses||{})[ym]||null;
+const isClosed=(ag,ym)=>{const m=mesInfo(ag,ym);return!!(m&&m.cerrado)};
+const saldoPrevOf=(ag,ym)=>{const m=mesInfo(ag,prevYm(ym));return m&&m.cerrado?m.saldo||0:0};
+function mesCalc(ag,ym){
+  const last=ym+'-'+pad(daysInMonth(ym));const mt=monthTotals(ag,ym);const g=sumGastos(ag,ym+'-01',last);
+  const sp=saldoPrevOf(ag,ym);const deu=deudaTotal(ag,last);
+  const dias=Object.keys(ag.cierres).filter(d=>d.startsWith(ym)).sort();const ultD=dias[dias.length-1]||null;
+  const ult=ultD?cierreCalc(ag,ultD):null;
+  const gc={};ag.gastos.filter(x=>x.fecha.startsWith(ym)).forEach(x=>gc[x.cat]=(gc[x.cat]||0)+x.monto);
+  return{last,mt,g,gc,sp,deu,dias,ultD,ult,res:mt.com-g,sug:sp+mt.com-g,info:mesInfo(ag,ym),prevOpen:!isClosed(ag,prevYm(ym))&&(Object.keys(ag.ventas).some(d=>d.startsWith(prevYm(ym)))||Object.keys(ag.cierres).some(d=>d.startsWith(prevYm(ym))))};
+}
+function vCierreMes(){
+  const ag=AG(),ym=monthOf(S.date),M=mesCalc(ag,ym),inf=M.info;const nx=monthOf(addDays(M.last,1));
+  let h='';
+  if(inf&&inf.cerrado)h+=`<div class="alert ok" data-keep>🔒 <b>${mesTxt(ym)} está cerrado</b> desde el ${dmy(inf.fecha)}. Saldo arrastrado a ${mesTxt(nx)}: <b>${gs(inf.saldo)}</b>. <button class="btn sm ghost" data-a="mreopen" style="margin-left:8px">Reabrir mes</button></div>`;
+  else if(M.prevOpen)h+=`<div class="alert">El mes anterior (${mesTxt(prevYm(ym))}) todavía no está cerrado, por eso no se arrastra ningún saldo a este mes.</div>`;
+  h+=`<div class="sectitle">Cierre general de ${mesTxt(ym)} · ${esc(ag.name)}</div><div class="kpis">`+
+    kpi('Saldo del mes anterior',gs(M.sp),M.sp?'Arrastrado':'Sin saldo arrastrado')+
+    kpi('Ventas brutas del mes',gs(M.mt.bruto),`${M.mt.days} días con ventas`)+
+    kpi('Comisiones del mes',gs(M.mt.com))+
+    kpi('Gastos del mes',gs(M.g))+
+    kpi('Resultado del mes',gs(M.res),'Comisiones − gastos',M.res>=0?'pos':'neg')+
+    kpi('Deudas abiertas al cierre',gs(M.deu),'Siguen en el mes nuevo')+
+    kpi('Último cierre diario',M.ult?gs(M.ult.dif):'—',M.ult?`${dmy(M.ultD)} · ${M.ult.dif>=0?'a favor':'déficit'}`:'Sin cierres diarios',M.ult?(M.ult.dif>=0?'pos':'neg'):'mut')+
+  `</div>`;
+  const prods=orderedProds(ag,Object.keys(M.mt.prods)).filter(p=>M.mt.prods[p].bruto||M.mt.prods[p].com);
+  h+=`<div class="grid2"><div class="card"><h2>Ventas y comisiones por producto</h2><div class="tw"><table><thead><tr><th>Producto</th><th>Venta bruta</th><th>Comisión</th></tr></thead><tbody>${prods.map(p=>`<tr><td>${esc(p)}</td><td>${fmt(M.mt.prods[p].bruto)}</td><td>${fmt(M.mt.prods[p].com)}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Sin ventas</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(M.mt.bruto)}</td><td>${fmt(M.mt.com)}</td></tr></tfoot></table></div></div>
+  <div class="card"><h2>Gastos por categoría</h2><div class="tw"><table><thead><tr><th>Categoría</th><th>Monto</th></tr></thead><tbody>${Object.entries(M.gc).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<tr><td>${esc(c)}</td><td>${fmt(v)}</td></tr>`).join('')||'<tr><td colspan="2" class="empty">Sin gastos</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(M.g)}</td></tr></tfoot></table></div></div></div>`;
+  h+=`<div class="card" data-keep><h2>Saldo para el mes siguiente</h2><div class="lines">
+    <div class="ln"><span class="k">Saldo del mes anterior</span><span>${fmt(M.sp)}</span></div>
+    <div class="ln"><span class="k">+ Comisiones del mes</span><span>${fmt(M.mt.com)}</span></div>
+    <div class="ln"><span class="k">− Gastos del mes</span><span>${fmt(M.g)}</span></div>
+    <div class="ln tot"><span>Saldo sugerido</span><span>${gs(M.sug)}</span></div></div>
+    <p class="note">El PNC, los premios del día, las deudas y el efectivo no se arrastran como saldo: el PNC y el arqueo se cargan cada día, y las deudas abiertas pasan solas al mes nuevo.</p>`;
+  if(inf&&inf.cerrado)h+=`<div class="row"><span>Saldo arrastrado: <b>${gs(inf.saldo)}</b></span>${inf.nota?`<span class="mut">· ${esc(inf.nota)}</span>`:''}<span class="sp"></span><button class="btn ghost" data-a="mprint">Imprimir resumen</button></div>`;
+  else h+=`<div class="row"><label>Saldo a arrastrar (podés ajustarlo)<input id="msaldo" class="money" inputmode="numeric" value="${fmt(M.sug)}"></label><label style="flex:1;min-width:200px">Nota del cierre<input id="mnota" placeholder="Opcional"></label><button class="btn" data-a="mclose" style="align-self:flex-end">Cerrar ${mesTxt(ym)} y arrastrar saldo</button><button class="btn ghost" data-a="mprint" style="align-self:flex-end">Imprimir resumen</button></div>
+    <p class="note">Al cerrar, el mes queda bloqueado (se puede reabrir) y el saldo aparece como ingreso "Saldo del mes anterior" en los cierres diarios de ${mesTxt(nx)}.</p>`;
+  h+=`</div>`;
+  const dias=M.dias;
+  h+=`<div class="card"><h2>Cierres diarios del mes</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ingresos</th><th>Egresos</th><th>Efectivo</th><th>Diferencia</th><th class="tl">Nota</th></tr></thead><tbody>${dias.map(d=>{const x=cierreCalc(ag,d);return`<tr class="click" data-a="goto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(x.ing)}</td><td>${fmt(x.egr)}</td><td>${fmt(x.aq.t)}</td><td class="${x.dif>=0?'pos':'neg'}"><b>${fmt(x.dif)}</b></td><td class="tl mut">${esc(x.c.nota||'')}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Sin cierres diarios</td></tr>'}</tbody></table></div></div>`;
+  return h;
 }
 function quinMonth(ag,ym,upto){
   let s=0,days=0,tk=0,pr=0,cp=0,last='';
@@ -274,6 +318,9 @@ function doRender(){
   maskDate($('#dinput'),v=>{S.date=v;render()});
   const V={resumen:vResumen,ventas:vVentas,gastos:vGastos,cierre:vCierre,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
   $('#view').innerHTML=V();
+  if(isClosed(AG(),monthOf(S.date))&&['ventas','gastos','cierre','deudas'].includes(S.tab)&&!(S.tab==='cierre'&&S.cmode==='mes')){
+    $('#view').querySelectorAll('input,select,textarea,button[data-a]').forEach(el=>{if(!el.closest('[data-keep]')&&!['vmode','csv','cmode','dtipo'].includes(el.dataset.a)&&el.id!=='dfil')el.disabled=true});
+    $('#view').insertAdjacentHTML('afterbegin',`<div class="alert" data-keep>🔒 ${mesTxt(monthOf(S.date))} está cerrado: solo se puede consultar. <button class="btn sm ghost" data-a="cmodemes">Ver cierre del mes</button></div>`)}
   if(S.tab==='gastos'||S.tab==='deudas'){const f=$('#fmonto');if(f&&S.focusMonto){f.focus();S.focusMonto=false}}
 }
 const kpi=(l,v,s='',cls='')=>`<div class="kpi"><div class="l">${l}</div><div class="v ${cls}">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
@@ -297,7 +344,7 @@ function vResumen(){
     kpi('Comisión agencia del mes',gs(mt.com))+
     kpi('Gastos del mes',gs(gMes))+
     kpi('Resultado (comisión − gastos)',gs(mt.com-gMes),'',mt.com-gMes>=0?'pos':'neg')+
-    kpi('Deudas de corredores',gs(cc.deu),'Saldo abierto')+
+    kpi('Deudas de corredores',gs(cc.deu),'Saldo abierto')+(cc.saldoPrev?kpi('Saldo del mes anterior',gs(cc.saldoPrev),'Arrastrado'):'')+
     kpi('Quiniela del mes',gs(mc.rec),mc.next?`Falta ${gs(mc.falta)} para meta ${fmt(mc.next.meta)}`:(mc.reached>=0?'Meta máxima alcanzada':''))+
   `</div>`;
   // gráfico diario
@@ -366,10 +413,16 @@ function vGastos(){
 
 /* ====================== CIERRE ====================== */
 function vCierre(){
+  const sw=`<div class="row" style="margin-bottom:12px" data-keep><span class="tabsmall"><button class="${S.cmode!=='mes'?'on':''}" data-a="cmode" data-k="dia">Cierre del día</button><button class="${S.cmode==='mes'?'on':''}" data-a="cmode" data-k="mes">Cierre del mes</button></span></div>`;
+  if(S.cmode==='mes')return sw+vCierreMes();
+  return sw+vCierreDia();
+}
+function vCierreDia(){
   const ag=AG(),D=S.date,ym=monthOf(D),cc=cierreCalc(ag,D),c=cc.c;
   const list=(k,arr)=>`${(arr||[]).map((x,i)=>`<div class="ln"><input style="flex:1" data-c="cl" data-k="${k}" data-i="${i}" data-f="desc" value="${esc(x.desc)}" placeholder="Concepto">${money('cl',x.monto,`data-k="${k}" data-i="${i}" data-f="monto"`)}<button class="btn x" data-a="cldel" data-k="${k}" data-i="${i}">✕</button></div>`).join('')}<div style="padding:6px 0"><button class="btn sm ghost" data-a="cladd" data-k="${k}">+ Agregar línea</button></div>`;
   let h=`<div class="alert">Cierre en <b>modo prueba</b>: muestra la diferencia entre ingresos y egresos, pero no bloquea nada. Los premios pagados del día cuentan como efectivo hasta que se descuentan al día siguiente.</div>`;
   h+=`<div class="grid3"><div class="card"><h2>Ingresos<span class="sp"></span><button class="btn sm ghost" data-a="pnccopy" title="Copiar PNC del último cierre">Copiar PNC anterior</button></h2><div class="lines">
+    ${cc.saldoPrev||isClosed(ag,prevYm(ym))?`<div class="ln"><span class="k">Saldo del mes anterior <small>(arrastrado de ${mesTxt(prevYm(ym))})</small></span><b>${fmt(cc.saldoPrev)}</b></div>`:''}
     <div class="ln"><span class="k">PNC mes actual</span>${money('cf',c.pncAct,'data-k="pncAct"')}</div>
     <div class="ln"><span class="k">PNC mes anterior</span>${money('cf',c.pncAnt,'data-k="pncAnt"')}</div>
     <div class="ln"><span class="k">Comisiones del mes <small>(automático, hasta el ${dm(D)})</small></span><b>${fmt(cc.comMes)}</b></div>
@@ -505,6 +558,13 @@ const ACT={
   cldel:b=>{const c=ensureC(AG(),S.date);c[b.dataset.k].splice(+b.dataset.i,1);save();render()},
   pnccopy:()=>{const ag=AG();const prev=Object.keys(ag.cierres).filter(d=>d<S.date&&(ag.cierres[d].pncAct||ag.cierres[d].pncAnt)).sort().pop();if(!prev){toast('No hay cierres anteriores con PNC');return}
     const c=ensureC(ag,S.date);c.pncAct=ag.cierres[prev].pncAct||0;c.pncAnt=ag.cierres[prev].pncAnt||0;save();toast('PNC copiado del '+dmy(prev));render()},
+  cmode:b=>{S.cmode=b.dataset.k;render()},
+  cmodemes:()=>{S.tab='cierre';S.cmode='mes';render()},
+  mclose:()=>{const ag=AG(),ym=monthOf(S.date);const saldo=pnum($('#msaldo').value);
+    if(!confirm(`¿Cerrar ${mesTxt(ym)} de ${ag.name}?\n\nSaldo a arrastrar: ${gs(saldo)}\nEl mes queda bloqueado (se puede reabrir).`))return;
+    ag.meses=ag.meses||{};ag.meses[ym]={cerrado:true,fecha:iso(new Date()),saldo,nota:$('#mnota').value.trim()};save();toast('Mes cerrado');render()},
+  mreopen:()=>{const ag=AG(),ym=monthOf(S.date);if(!confirm(`¿Reabrir ${mesTxt(ym)}? El saldo deja de arrastrarse hasta que lo vuelvas a cerrar.`))return;ag.meses[ym].cerrado=false;save();render()},
+  mprint:()=>window.print(),
   cdel:()=>{if(confirm('¿Borrar el cierre de este día?')){delete AG().cierres[S.date];save();render()}},
   dtipo:b=>{S.dTipo=b.dataset.k;render()},
   dadd:()=>{const ag=AG();const corr=$('#dcorr').value.trim();const monto=pnum($('#fmonto').value);if(!corr){toast('Ingresá el N° de corredor');$('#dcorr').focus();return}if(!monto){toast('Ingresá el monto');$('#fmonto').focus();return}
@@ -527,6 +587,7 @@ const ACT={
   reset:()=>{const ag=AG();if(prompt(`Escribí BORRAR para eliminar todos los datos de ${ag.name}`)!=='BORRAR')return;DB.agencies[ag.code]=defAgency(ag.code);save();toast('Datos borrados');render()},
 };
 function download(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+const guard=()=>{if(isClosed(AG(),monthOf(S.date))){toast('El mes está cerrado. Reabrilo para modificar.');render();return true}return false};
 const CHG={
   vb:t=>{const ag=AG(),D=S.date,v=ensureDay(ag,D),p=t.dataset.p;const it=v.items[p]||(v.items[p]={});it.bruto=pnum(t.value);it.com=Math.round(it.bruto*pctOf(ag,p)/100);cleanDay(ag,D);save();render()},
   vc:t=>{const ag=AG(),D=S.date,v=ensureDay(ag,D),p=t.dataset.p;const it=v.items[p]||(v.items[p]={});it.com=pnum(t.value);cleanDay(ag,D);save();render()},
@@ -544,6 +605,8 @@ const CHG={
   capct:t=>{AG().comAgPct=ppct(t.value);save();render()},
   sgpct:t=>{AG().sueldosPct=ppct(t.value);save();render()},
 };
+for(const k of['psave','vdel','gadd','gdel','gedit','cladd','cldel','pnccopy','cdel','dadd','dsaldar','ddel']){const f=ACT[k];ACT[k]=(...a)=>{if(!guard())f(...a)}}
+for(const k of['vb','vc','vs','cf','cq','cl']){const f=CHG[k];CHG[k]=(...a)=>{if(!guard())f(...a)}}
 for(const l of Object.keys(LISTS))CHG[l]=t=>{const ag=AG();const arr=LISTS[l](ag);const x=arr[+t.dataset.i];const f=t.dataset.f;
   if(f==='name'){const old=x.name,nw=t.value.trim();if(!nw)return render();x.name=nw;
     if(l==='lcob'){for(const ym in ag.metas){const c=ag.metas[ym].cobr;if(c&&c[old]){c[nw]=c[old];delete c[old]}}ag.deudas.forEach(d=>{if(d.cobrador===old)d.cobrador=nw})}
