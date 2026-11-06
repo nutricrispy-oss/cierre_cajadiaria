@@ -321,6 +321,7 @@ function doRender(){
   if(isClosed(AG(),monthOf(S.date))&&['ventas','gastos','cierre','deudas'].includes(S.tab)&&!(S.tab==='cierre'&&S.cmode==='mes')){
     $('#view').querySelectorAll('input,select,textarea,button[data-a]').forEach(el=>{if(!el.closest('[data-keep]')&&!['vmode','csv','cmode','dtipo'].includes(el.dataset.a)&&el.id!=='dfil')el.disabled=true});
     $('#view').insertAdjacentHTML('afterbegin',`<div class="alert" data-keep>🔒 ${mesTxt(monthOf(S.date))} está cerrado: solo se puede consultar. <button class="btn sm ghost" data-a="cmodemes">Ver cierre del mes</button></div>`)}
+  if(S.tab==='ajustes'){fillSnaps();if(DB.settings.gClientId)GD.loadLib().catch(()=>{})}
   if(S.tab==='gastos'||S.tab==='deudas'){const f=$('#fmonto');if(f&&S.focusMonto){f.focus();S.focusMonto=false}}
 }
 const kpi=(l,v,s='',cls='')=>`<div class="kpi"><div class="l">${l}</div><div class="v ${cls}">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
@@ -510,7 +511,12 @@ function vAjustes(){
   const ag=AG();
   const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'||cls==='tel'?'inputmode="numeric"':''} ${cls==='tel'?'placeholder="0981 123 456" style="width:130px"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">✕</button></td></tr>`).join('');
   let h=`<div class="sectitle">Ajustes de ${esc(ag.name)}</div><div class="grid2"><div class="card"><h2>Agencia</h2><div class="row"><label style="flex:1">Nombre<input data-c="agname" value="${esc(ag.name)}"></label></div></div>
-  <div class="card"><h2>Respaldo</h2><div class="row"><button class="btn" data-a="bkexp">Descargar backup</button><button class="btn ghost" data-a="bkimp">Restaurar / importar</button></div><p class="note">El backup incluye las dos agencias. También podés importar archivos de datos (por ejemplo, el de octubre) que se suman a lo que ya tenés.</p></div></div>
+  <div class="card"><h2>Respaldo en archivo</h2><div class="row"><button class="btn" data-a="bkexp">Descargar backup</button><button class="btn ghost" data-a="bkimp">Restaurar / importar archivo</button>${navigator.canShare?`<button class="btn ghost" data-a="bkshare">Compartir…</button>`:''}</div><p class="note">El backup incluye las dos agencias. También podés importar archivos de datos (por ejemplo, el de octubre) que se suman a lo que ya tenés.</p></div></div>
+  <div class="grid2"><div class="card"><h2>Copias en este equipo<span class="sp"></span><button class="btn sm ghost" data-a="snapnow">Crear copia ahora</button></h2><div id="snaplist" class="note">Cargando…</div><p class="note">Se guardan solas las <b>últimas 3 copias</b> en esta PC o celular: una automática por día al abrir la app, y otra antes de cada restauración.</p></div>
+  <div class="card"><h2>Google Drive</h2>${DB.settings.gClientId?`<div class="row"><button class="btn" data-a="gdup">Subir respaldo a Drive</button><button class="btn ghost" data-a="gdlist">Ver últimos 3 en Drive</button></div>
+   <p class="note">${DB.settings.lastDrive?'Última subida: '+new Date(DB.settings.lastDrive).toLocaleString('es-PY'):'Todavía no se subió ningún respaldo.'} Los archivos se guardan en la carpeta <b>CRz Caja Diaria - Respaldos</b> de tu Drive.</p>
+   <div id="gdlistbox">${S.gdList?gdListHtml():''}</div>`:'<p class="note">Para usar Drive hace falta cargar una sola vez tu <b>ID de cliente de Google</b> (los pasos están en las instrucciones que te pasé).</p>'}
+   <details style="margin-top:8px"${DB.settings.gClientId?'':' open'}><summary class="note" style="cursor:pointer">ID de cliente de Google</summary><div class="row" style="margin-top:6px"><input id="gcid" style="flex:1" value="${esc(DB.settings.gClientId||'')}" placeholder="xxxxxxxx.apps.googleusercontent.com"><button class="btn sm" data-a="gcidsave">Guardar</button></div></details></div></div>
   <div class="grid2"><div class="card"><h2>Productos y % de comisión de agencia</h2><div class="tw"><table><thead><tr><th>Producto</th><th class="tl">% agencia</th><th></th></tr></thead><tbody>${rowsList(ag.products,'lprod',[['name',''],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lprod" style="margin-top:8px">+ Producto</button><p class="note">El nombre debe coincidir con el de TDPbiz para que el pegado lo reconozca. Los productos nuevos que aparezcan al pegar se agregan solos.</p></div>
   <div class="card"><h2>Cobradores y participación</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th class="tl">Participación %</th><th class="tl">WhatsApp</th><th></th></tr></thead><tbody>${rowsList(ag.cobradores,'lcob',[['name',''],['share','pct'],['tel','tel']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lcob" style="margin-top:8px">+ Cobrador</button>
   <p class="note">Suma actual: ${pf(ag.cobradores.reduce((s,c)=>s+(+c.share||0),0))}%</p>
@@ -594,7 +600,15 @@ const ACT={
   ldel:b=>{const ag=AG();const arr=LISTS[b.dataset.l](ag);if(!confirm('¿Quitar esta fila?'))return;arr.splice(+b.dataset.i,1);save();render()},
   chadd:b=>{const ag=AG();const inp=$('#'+b.dataset.in);const v=inp.value.trim();if(!v)return;if(!ag[b.dataset.l].includes(v))ag[b.dataset.l].push(v);save();render()},
   chdel:b=>{const ag=AG();ag[b.dataset.l].splice(+b.dataset.i,1);save();render()},
-  bkexp:()=>{download(`crz-caja-backup_${iso(new Date())}.json`,JSON.stringify({app:'crz-caja-diaria',fullBackup:true,fecha:new Date().toISOString(),data:DB}),'application/json')},
+  bkexp:()=>{download(`crz-caja-backup_${iso(new Date())}.json`,backupJson(),'application/json')},
+  bkshare:async()=>{try{const f=new File([backupJson()],`crz-caja-backup_${iso(new Date())}.json`,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],title:'Respaldo CRz Caja Diaria'});else toast('Este equipo no permite compartir archivos')}catch(e){if(e.name!=='AbortError')toast('No se pudo compartir')}},
+  snapnow:async()=>{const ok=await snapshot('Manual');toast(ok?'Copia guardada en este equipo':'No hay cambios desde la última copia');fillSnaps()},
+  snaprest:async b=>{const x=await IDB.get(b.dataset.id);if(!x)return;try{await applyImport({app:'crz-caja-diaria',fullBackup:true,data:JSON.parse(x.json)},'la copia del '+new Date(x.id).toLocaleString('es-PY'))}catch(e){alert('No se pudo restaurar: '+e.message)}},
+  snapdl:async b=>{const x=await IDB.get(b.dataset.id);if(x)download(`crz-caja-copia_${x.id.slice(0,10)}.json`,JSON.stringify({app:'crz-caja-diaria',fullBackup:true,fecha:x.id,data:JSON.parse(x.json)}),'application/json')},
+  gcidsave:()=>{DB.settings.gClientId=$('#gcid').value.trim();GD.token=null;GD.folder=null;save();toast('ID de cliente guardado');render()},
+  gdup:async b=>{b.disabled=true;b.textContent='Subiendo…';try{const n=await GD.upload();DB.settings.lastDrive=new Date().toISOString();save();toast('Respaldo subido a Drive');S.gdList=await GD.list()}catch(e){alert('No se pudo subir a Drive:\n'+e.message)}render()},
+  gdlist:async b=>{b.disabled=true;try{S.gdList=await GD.list()}catch(e){alert('No se pudo leer Drive:\n'+e.message)}render()},
+  gdrest:async b=>{b.disabled=true;b.textContent='Descargando…';try{const j=await GD.get(b.dataset.id);await applyImport(j,'el respaldo de Drive')}catch(e){alert('No se pudo restaurar desde Drive:\n'+e.message)}render()},
   bkimp:()=>$('#fileimp').click(),
   reset:()=>{const ag=AG();if(prompt(`Escribí BORRAR para eliminar todos los datos de ${ag.name}`)!=='BORRAR')return;DB.agencies[ag.code]=defAgency(ag.code);save();toast('Datos borrados');render()},
 };
@@ -634,16 +648,50 @@ document.addEventListener('keydown',e=>{const t=e.target;if(e.key!=='Enter'||t.t
   if(t.id==='fmonto'||t.id==='fdesc'||t.id==='dref'){e.preventDefault();(S.tab==='gastos'?ACT.gadd:ACT.dadd)();return}
   if(t.dataset.c){e.preventDefault();const all=[...document.querySelectorAll('#view input[data-c]')];const nx=all[all.indexOf(t)+1];if(nx)nx.focus();else t.blur()}});
 $('#fileimp').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
-  try{const j=JSON.parse(await f.text());if(j.app!=='crz-caja-diaria')throw new Error('Archivo no reconocido');
-    if(j.fullBackup){if(!confirm('Esto reemplaza TODOS los datos actuales por los del backup. ¿Continuar?'))return;DB=j.data;load2();toast('Backup restaurado')}
+  try{await applyImport(JSON.parse(await f.text()))}catch(err){alert('No se pudo importar: '+err.message)}});
+async function applyImport(j,origen='el backup'){
+    if(j.app!=='crz-caja-diaria')throw new Error('Archivo no reconocido');
+    if(j.fullBackup){if(!confirm(`Esto reemplaza TODOS los datos actuales por los de ${origen}. ¿Continuar?\n\n(Antes se guarda una copia de lo actual en este equipo.)`))return;
+      await snapshot('Antes de restaurar');const keep={gClientId:DB.settings.gClientId,lastDrive:DB.settings.lastDrive};DB=j.data;load2();Object.assign(DB.settings,keep);toast('Respaldo restaurado')}
     else if(j.merge){const ag=DB.agencies[j.agency];if(!ag)throw new Error('Agencia desconocida');
       (j.products||[]).forEach(p=>{if(!ag.products.some(x=>norm(x.name)===norm(p.name)))ag.products.push(p)});
       Object.assign(ag.ventas,j.ventas||{});for(const ym in j.metas||{}){ag.metas[ym]=Object.assign(ag.metas[ym]||{},j.metas[ym])}
       toast(`Datos importados en ${ag.name}`)}
-    save();render()}catch(err){alert('No se pudo importar: '+err.message)}});
+    save();render()}
+/* ---- copias locales (IndexedDB, últimas 3) ---- */
+const IDB={db:null,
+  open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);const r=indexedDB.open('crzCajaDiaria',1);r.onupgradeneeded=()=>r.result.createObjectStore('snaps',{keyPath:'id'});r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>rej(r.error)})},
+  async req(mode,fn){const db=await this.open();return new Promise((res,rej)=>{const q=fn(db.transaction('snaps',mode).objectStore('snaps'));q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})},
+  async all(){return(await this.req('readonly',st=>st.getAll())).sort((a,b)=>b.id.localeCompare(a.id))},
+  put(o){return this.req('readwrite',st=>st.put(o))},del(id){return this.req('readwrite',st=>st.delete(id))},get(id){return this.req('readonly',st=>st.get(id))}};
+async function snapshot(motivo){try{const json=JSON.stringify(DB);const all=await IDB.all();if(all[0]&&all[0].json===json)return false;
+  await IDB.put({id:new Date().toISOString(),motivo,json});for(const x of(await IDB.all()).slice(3))await IDB.del(x.id);return true}catch(e){console.warn(e);return false}}
+async function fillSnaps(){const el=$('#snaplist');if(!el)return;try{const all=await IDB.all();
+  el.innerHTML=all.length?`<table><tbody>${all.map(x=>`<tr><td class="tl">${new Date(x.id).toLocaleString('es-PY')}<div class="note">${esc(x.motivo)} · ${Math.round(x.json.length/1024)} KB</div></td><td><button class="btn sm" data-a="snaprest" data-id="${x.id}">Restaurar</button> <button class="btn sm ghost" data-a="snapdl" data-id="${x.id}">Descargar</button></td></tr>`).join('')}</tbody></table>`:'Todavía no hay copias.'}catch(e){el.textContent='No se pudo leer las copias de este equipo.'}}
+async function autoSnap(){try{const all=await IDB.all();const hoy=iso(new Date());if(!all.length||iso(new Date(all[0].id))!==hoy)await snapshot('Automática del día')}catch(e){}}
+/* ---- Google Drive ---- */
+const GD={token:null,exp:0,folder:null,FOLDER:'CRz Caja Diaria - Respaldos',
+  loadLib(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.onload=()=>res();sc.onerror=()=>rej(new Error('No se pudo cargar Google (¿sin internet?)'));document.head.appendChild(sc)})},
+  async auth(){if(this.token&&Date.now()<this.exp)return this.token;await this.loadLib();
+    return new Promise((res,rej)=>{const tc=google.accounts.oauth2.initTokenClient({client_id:DB.settings.gClientId,scope:'https://www.googleapis.com/auth/drive.file',
+      callback:r=>{if(r.error)return rej(new Error(r.error_description||r.error));this.token=r.access_token;this.exp=Date.now()+(r.expires_in-60)*1000;res(this.token)},
+      error_callback:e=>rej(new Error(e.message||e.type||'Acceso cancelado'))});tc.requestAccessToken()})},
+  async api(url,opt={}){const t=await this.auth();const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+t}});if(!r.ok)throw new Error('Drive respondió '+r.status+': '+(await r.text()).slice(0,200));return r},
+  async folderId(){if(this.folder)return this.folder;const q=encodeURIComponent(`name='${this.FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const j=await(await this.api(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`)).json();
+    if(j.files&&j.files.length)return this.folder=j.files[0].id;
+    const c=await(await this.api('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:this.FOLDER,mimeType:'application/vnd.google-apps.folder'})})).json();return this.folder=c.id},
+  async upload(){const fid=await this.folderId();const name=`crz-caja-backup_${iso(new Date())}_${new Date().toTimeString().slice(0,5).replace(':','h')}.json`;
+    const b='crzb'+Date.now();const body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[fid],mimeType:'application/json'})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${backupJson()}\r\n--${b}--`;
+    await this.api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body});return name},
+  async list(){const fid=await this.folderId();const q=encodeURIComponent(`'${fid}' in parents and trashed=false`);
+    return(await(await this.api(`https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=createdTime desc&pageSize=3&fields=files(id,name,createdTime,size)`)).json()).files||[]},
+  async get(id){return(await this.api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json()}};
+const backupJson=()=>JSON.stringify({app:'crz-caja-diaria',fullBackup:true,fecha:new Date().toISOString(),data:DB});
+function gdListHtml(){const L=S.gdList||[];return L.length?`<table style="margin-top:8px"><tbody>${L.map(f=>`<tr><td class="tl">${new Date(f.createdTime).toLocaleString('es-PY')}<div class="note">${esc(f.name)} · ${Math.round((+f.size||0)/1024)} KB</div></td><td><button class="btn sm" data-a="gdrest" data-id="${f.id}">Restaurar</button></td></tr>`).join('')}</tbody></table>`:'<p class="note">No hay respaldos en Drive todavía.</p>'}
 function load2(){for(const k of['17','26'])DB.agencies[k]=Object.assign(defAgency(k),DB.agencies[k]||{});DB.settings=DB.settings||{agency:'17',theme:'light'}}
 
-load();render();
+load();render();autoSnap();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
