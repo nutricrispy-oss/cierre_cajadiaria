@@ -448,19 +448,21 @@ function vCierreDia(){
 function vDeudas(){
   const ag=AG(),D=S.date,ym=monthOf(D);const tipo=S.dTipo||'deuda';
   let h=`<div class="card"><h2>Registrar · ${dmy(D)}<span class="sp"></span><span class="tabsmall"><button class="${tipo==='deuda'?'on':''}" data-a="dtipo" data-k="deuda">Deuda</button><button class="${tipo==='pago'?'on':''}" data-a="dtipo" data-k="pago">Pago</button></span></h2><div class="row">
-   <label>Cobrador<select id="dcob">${ag.cobradores.map(c=>`<option ${S.dCob===c.name?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
+   <label>Cobrador<select id="dcob">${ag.cobradores.map(c=>`<option ${(S.dCobF||S.dCob)===c.name?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
    <label>Corredor N°<input id="dcorr" class="num" inputmode="numeric" value="${esc(S.dCorr||'')}"></label>
    ${tipo==='deuda'?`<label>Motivo<select id="dmot">${ag.motivos.map(m=>`<option>${esc(m)}</option>`).join('')}</select></label>`:''}
    <label>Monto<input id="fmonto" class="money" inputmode="numeric" placeholder="0"></label>
    <label style="flex:1;min-width:160px">Referencia / nota<input id="dref" placeholder="Ej.: reportó Pichi"></label>
    <button class="btn" data-a="dadd" style="align-self:flex-end">${tipo==='deuda'?'Registrar deuda':'Registrar pago'}</button></div></div>`;
-  const sal=deudaSaldos(ag);const ab=sal.filter(o=>o.saldo>0).sort((a,b)=>b.saldo-a.saldo);
+  const cf=S.dCobF||'';
+  h+=`<div class="card"><div class="row"><b>Ver cobrador:</b><span class="tabsmall"><button class="${!cf?'on':''}" data-a="dcobf" data-k="">Todos</button>${ag.cobradores.map(c=>`<button class="${cf===c.name?'on':''}" data-a="dcobf" data-k="${esc(c.name)}">${esc(c.name)}</button>`).join('')}</span><span class="hsp" style="flex:1"></span>${cf?`<button class="btn" data-a="dwa" style="background:#25a244;border-color:#25a244">Enviar deudas de ${esc(cf.split(' ')[0])} por WhatsApp</button>`:`<span class="note">Elegí un cobrador para ver solo sus corredores y enviarle sus deudas por WhatsApp.</span>`}</div></div>`;
+  const sal=deudaSaldos(ag).filter(o=>!cf||o.cobrador===cf);const ab=sal.filter(o=>o.saldo>0).sort((a,b)=>b.saldo-a.saldo);
   const porCob={};ab.forEach(o=>porCob[o.cobrador]=(porCob[o.cobrador]||0)+o.saldo);
   h+=`<div class="kpis">${kpi('Total adeudado (hoy)',gs(ab.reduce((s,o)=>s+o.saldo,0)),`${ab.length} corredores con saldo`)}${Object.entries(porCob).map(([c,v])=>kpi(esc(c),gs(v))).join('')}</div>`;
   h+=`<div class="grid2"><div class="card"><h2>Saldos abiertos</h2><div class="tw"><table><thead><tr><th>Corredor</th><th class="tl">Cobrador</th><th>Deuda</th><th>Pagado</th><th>Saldo</th><th>Último mov.</th><th></th></tr></thead><tbody>${ab.map(o=>`<tr><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td>${fmt(o.deuda)}</td><td>${fmt(o.pagado)}</td><td class="neg"><b>${fmt(o.saldo)}</b></td><td>${dmy(o.last)}</td><td><button class="btn sm ghost" data-a="dsaldar" data-k="${esc(o.corredor)}">Saldar</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nadie debe nada 👍</td></tr>'}</tbody></table></div></div>`;
   const rk=[...sal].sort((a,b)=>b.n-a.n||b.deuda-a.deuda).slice(0,15);
   h+=`<div class="card"><h2>Corredores más recurrentes</h2><div class="tw"><table><thead><tr><th>#</th><th>Corredor</th><th class="tl">Cobrador</th><th>Veces</th><th>Total adeudado</th><th class="tl">Motivos</th></tr></thead><tbody>${rk.map((o,i)=>`<tr><td>${i+1}</td><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td><span class="badge ${o.n>=5?'bad':o.n>=3?'warn':''}">${o.n}</span></td><td>${fmt(o.deuda)}</td><td class="tl mut">${Object.entries(o.motivos).map(([m,n])=>esc(m)+' ×'+n).join(', ')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sin registros</td></tr>'}</tbody></table></div></div></div>`;
-  const fil=S.dFil.trim();const mov=ag.deudas.filter(x=>fil?String(x.corredor).trim()===fil:x.fecha.startsWith(ym)).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const fil=S.dFil.trim();const corrs=new Set(sal.map(o=>o.corredor));const mov=ag.deudas.filter(x=>(!cf||corrs.has(String(x.corredor).trim()))&&(fil?String(x.corredor).trim()===fil:x.fecha.startsWith(ym))).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   h+=`<div class="card"><h2>Movimientos ${fil?'del corredor '+esc(fil):'de '+mesTxt(ym)}<span class="sp"></span><label class="row" style="font-size:12px;color:var(--muted)">Buscar corredor <input id="dfil" class="num" value="${esc(S.dFil)}" data-c="dfil"></label></h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Corredor</th><th class="tl">Cobrador</th><th class="tl">Tipo</th><th>Monto</th><th class="tl">Referencia</th><th></th></tr></thead><tbody>${mov.map(x=>`<tr><td>${dmy(x.fecha)}</td><td><b>${esc(x.corredor)}</b></td><td class="tl">${esc(x.cobrador)}</td><td class="tl">${x.tipo==='pago'?'<span class="badge ok">Pago</span>':`<span class="badge bad">${esc(x.motivo)}</span>`}</td><td>${fmt(x.monto)}</td><td class="tl mut">${esc(x.ref||'')}</td><td><button class="btn x" data-a="ddel" data-id="${x.id}">✕</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin movimientos</td></tr>'}</tbody></table></div></div>`;
   return h;
 }
@@ -506,11 +508,11 @@ function vMetas(){
 /* ====================== AJUSTES ====================== */
 function vAjustes(){
   const ag=AG();
-  const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'?'inputmode="numeric"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">✕</button></td></tr>`).join('');
+  const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'||cls==='tel'?'inputmode="numeric"':''} ${cls==='tel'?'placeholder="0981 123 456" style="width:130px"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">✕</button></td></tr>`).join('');
   let h=`<div class="sectitle">Ajustes de ${esc(ag.name)}</div><div class="grid2"><div class="card"><h2>Agencia</h2><div class="row"><label style="flex:1">Nombre<input data-c="agname" value="${esc(ag.name)}"></label></div></div>
   <div class="card"><h2>Respaldo</h2><div class="row"><button class="btn" data-a="bkexp">Descargar backup</button><button class="btn ghost" data-a="bkimp">Restaurar / importar</button></div><p class="note">El backup incluye las dos agencias. También podés importar archivos de datos (por ejemplo, el de octubre) que se suman a lo que ya tenés.</p></div></div>
   <div class="grid2"><div class="card"><h2>Productos y % de comisión de agencia</h2><div class="tw"><table><thead><tr><th>Producto</th><th class="tl">% agencia</th><th></th></tr></thead><tbody>${rowsList(ag.products,'lprod',[['name',''],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lprod" style="margin-top:8px">+ Producto</button><p class="note">El nombre debe coincidir con el de TDPbiz para que el pegado lo reconozca. Los productos nuevos que aparezcan al pegar se agregan solos.</p></div>
-  <div class="card"><h2>Cobradores y participación</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th class="tl">Participación %</th><th></th></tr></thead><tbody>${rowsList(ag.cobradores,'lcob',[['name',''],['share','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lcob" style="margin-top:8px">+ Cobrador</button>
+  <div class="card"><h2>Cobradores y participación</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th class="tl">Participación %</th><th class="tl">WhatsApp</th><th></th></tr></thead><tbody>${rowsList(ag.cobradores,'lcob',[['name',''],['share','pct'],['tel','tel']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lcob" style="margin-top:8px">+ Cobrador</button>
   <p class="note">Suma actual: ${pf(ag.cobradores.reduce((s,c)=>s+(+c.share||0),0))}%</p>
   <h3>Categorías de gastos</h3><div class="chips">${ag.gastoCats.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="gastoCats" data-i="${i}">✕</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newcat" placeholder="Nueva categoría"><button class="btn sm ghost" data-a="chadd" data-l="gastoCats" data-in="newcat">Agregar</button></div>
   <h3>Motivos de deuda</h3><div class="chips">${ag.motivos.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="motivos" data-i="${i}">✕</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newmot" placeholder="Nuevo motivo"><button class="btn sm ghost" data-a="chadd" data-l="motivos" data-in="newmot">Agregar</button></div></div></div>
@@ -567,6 +569,16 @@ const ACT={
   mprint:()=>window.print(),
   cdel:()=>{if(confirm('¿Borrar el cierre de este día?')){delete AG().cierres[S.date];save();render()}},
   dtipo:b=>{S.dTipo=b.dataset.k;render()},
+  dcobf:b=>{S.dCobF=b.dataset.k;render()},
+  dwa:()=>{const ag=AG(),cf=S.dCobF;const cob=ag.cobradores.find(c=>c.name===cf)||{};
+    const ab=deudaSaldos(ag).filter(o=>o.cobrador===cf&&o.saldo>0).sort((a,b)=>(+a.corredor||0)-(+b.corredor||0));
+    if(!ab.length){toast('Este cobrador no tiene deudas pendientes');return}
+    const L=[`*Deudas pendientes – ${cf}*`,`${ag.name} · al ${dmy(S.date)}`,''];
+    for(const o of ab){const movs=ag.deudas.filter(x=>String(x.corredor).trim()===o.corredor&&x.tipo!=='pago');const ult=movs.sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+      L.push(`• Corr. *${o.corredor}*: ${gs(o.saldo)}`+(o.pagado?` (pagó ${fmt(o.pagado)} de ${fmt(o.deuda)})`:'')+` – ${Object.keys(o.motivos).join(', ')}`+(ult&&ult.ref?` – ${ult.ref}`:''))}
+    L.push('',`*Total: ${gs(ab.reduce((s,o)=>s+o.saldo,0))}* (${ab.length} corredor${ab.length>1?'es':''})`);
+    let tel=String(cob.tel||'').replace(/\D/g,'');if(tel.startsWith('0'))tel='595'+tel.slice(1);else if(tel.length===9&&tel.startsWith('9'))tel='595'+tel;
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(L.join('\n'))}`,'_blank')},
   dadd:()=>{const ag=AG();const corr=$('#dcorr').value.trim();const monto=pnum($('#fmonto').value);if(!corr){toast('Ingresá el N° de corredor');$('#dcorr').focus();return}if(!monto){toast('Ingresá el monto');$('#fmonto').focus();return}
     const tipo=S.dTipo||'deuda';S.dCob=$('#dcob').value;
     ag.deudas.push({id:uid(),fecha:S.date,cobrador:S.dCob,corredor:corr,tipo,motivo:tipo==='pago'?'Pago':$('#dmot').value,monto,ref:$('#dref').value.trim()});
@@ -609,8 +621,9 @@ for(const k of['psave','vdel','gadd','gdel','gedit','cladd','cldel','pnccopy','c
 for(const k of['vb','vc','vs','cf','cq','cl']){const f=CHG[k];CHG[k]=(...a)=>{if(!guard())f(...a)}}
 for(const l of Object.keys(LISTS))CHG[l]=t=>{const ag=AG();const arr=LISTS[l](ag);const x=arr[+t.dataset.i];const f=t.dataset.f;
   if(f==='name'){const old=x.name,nw=t.value.trim();if(!nw)return render();x.name=nw;
-    if(l==='lcob'){for(const ym in ag.metas){const c=ag.metas[ym].cobr;if(c&&c[old]){c[nw]=c[old];delete c[old]}}ag.deudas.forEach(d=>{if(d.cobrador===old)d.cobrador=nw})}
+    if(l==='lcob'){for(const ym in ag.metas){const c=ag.metas[ym].cobr;if(c&&c[old]){c[nw]=c[old];delete c[old]}}ag.deudas.forEach(d=>{if(d.cobrador===old)d.cobrador=nw});if(S.dCobF===old)S.dCobF=nw}
     if(l==='lprod'){for(const d in ag.ventas){const it=ag.ventas[d].items;if(it&&it[old]&&!it[nw]){it[nw]=it[old];delete it[old]}}}}
+  else if(f==='tel')x.tel=t.value.trim();
   else if(f==='meta')x.meta=pnum(t.value);else x[f]=ppct(t.value);save();render()};
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const f=ACT[b.dataset.a];if(f){e.preventDefault();f(b,e)}});
