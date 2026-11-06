@@ -234,19 +234,20 @@ function metasCalc(ag,ym){
 /* ====================== pegado TDPbiz ====================== */
 const isVal=t=>/^-?[\d.,]+%?$/.test(t)||t==='-';
 function parseTDP(text){
-  const rows=[];let total=null,pending='';
-  for(const raw of String(text).replace(/\r/g,'').split('\n')){
-    const line=raw.replace(/ /g,' ').replace(/[⚠→]/g,' ').trim();if(!line)continue;
-    const toks=line.split(/\s+/);const name=[];let i=0;
-    while(i<toks.length&&!isVal(toks[i])){name.push(toks[i]);i++}
-    const vals=toks.slice(i).filter(isVal);
-    let nm=name.join(' ');
-    if(/producto|bruto|cantidad|comisi/i.test(nm)&&vals.length===0){pending='';continue}
-    if(vals.length<2){pending=(pending+' '+nm).trim();continue}
-    nm=(pending+' '+nm).trim();pending='';
-    const num=k=>vals[k]!==undefined&&!/%$/.test(vals[k])?pnum(vals[k]):0;
+  // Lee los datos como una secuencia: un nombre de producto seguido de sus números.
+  // Funciona si se copia una fila por línea, una celda por línea o todo seguido.
+  const toks=String(text).replace(/\u00a0/g,' ').replace(/[⚠→↗➔➜]/g,' ').split(/\s+/).filter(Boolean);
+  const groups=[];let name=[],vals=[];
+  const flush=()=>{if(name.length&&vals.length)groups.push({name:name.join(' '),vals:vals.slice()})};
+  for(const t of toks){if(isVal(t))vals.push(t);else{if(vals.length){flush();name=[];vals=[]}name.push(t)}}
+  flush();
+  const rows=[];let total=null;
+  for(const g of groups){
+    let nm=g.name.replace(/^producto\b.*?\bneto\b\s*/i,'').replace(/^.*\b(actions|acciones|depositar)\b\s*/i,'').trim();
+    if(!nm||g.vals.length<2)continue;
+    const v=g.vals;const num=k=>v[k]!==undefined&&!/%$/.test(v[k])?pnum(v[k]):0;
     const o={name:nm,bruto:num(0),cant:num(1),prem:num(2),cprem:num(3),com:num(5),comCorr:num(6),neto:num(7)};
-    if(norm(nm)==='total'){o.sAnt=num(8);o.dep=num(9);o.sDep=num(10);total=o}else if(nm)rows.push(o);
+    if(norm(nm)==='total'){o.sAnt=num(8);o.dep=num(9);o.sDep=num(10);total=o}else rows.push(o);
   }
   return{rows,total};
 }
@@ -480,7 +481,7 @@ const ACT={
   theme:()=>{DB.settings.theme=DB.settings.theme==='dark'?'light':'dark';save();render()},
   dprev:()=>{S.date=addDays(S.date,-1);render()},dnext:()=>{S.date=addDays(S.date,1);render()},dtoday:()=>{S.date=iso(new Date());render()},
   goto:b=>{S.date=b.dataset.d;render()},
-  pparse:()=>{const t=$('#paste').value;const P=parseTDP(t);if(!P.rows.length){toast('No se reconocieron filas. Copiá la tabla completa.');return}S.pastePrev=P;S.pasteText=t;render()},
+  pparse:()=>{const t=$('#paste').value;const P=parseTDP(t);if(!P.rows.length){alert('No se reconocieron filas de productos.\n\nLo que llegó al pegar empieza así:\n\n'+(t.trim().slice(0,300)||'(vacío)')+'\n\nCopiá la tabla desde "Producto" hasta la fila "Total".');return}S.pastePrev=P;S.pasteText=t;render()},
   pclear:()=>{S.pastePrev=null;render()},pcancel:()=>{S.pastePrev=null;render()},
   psave:()=>{const ag=AG(),D=S.date,P=S.pastePrev;if(ag.ventas[D]&&Object.keys(ag.ventas[D].items||{}).length&&!confirm(`Ya hay ventas cargadas el ${dmy(D)}. ¿Reemplazarlas?`))return;
     const v={items:{},src:'tdp'};
