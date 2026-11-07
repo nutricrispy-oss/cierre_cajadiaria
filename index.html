@@ -87,12 +87,19 @@ tr.hit td{background:var(--okbg)}
 .dif.pos{background:var(--okbg)}.dif.neg{background:var(--badbg)}
 .pdrop{margin-top:4px;border:2px dashed var(--line);border-radius:10px;padding:18px;text-align:center;cursor:pointer;color:var(--text)}
 .pdrop:hover,.pdrop.on{border-color:var(--pri);background:var(--pri2)}
-.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:12px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:12px;align-items:start}
 .scol{border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .scol .shead{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--pri2)}
 .scol .shead .sp{flex:1}
 .scol table td,.scol table th{padding:4px 6px}
 .scol tr.pentry td{background:var(--bg)}
+table.xl td,table.xl th{padding:3px 6px}
+table.xl td.bol{font-size:12px;font-family:ui-monospace,Consolas,monospace}
+table.xl tr.tots td{font-weight:750;background:var(--bg);border-bottom:2px solid var(--line)}
+table.xl tr.pd td{color:var(--muted)}table.xl tr.pd td b{color:var(--muted)}
+.pbtn{border:1px solid var(--line);background:var(--card);color:var(--pri);border-radius:6px;padding:2px 8px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-width:74px;text-align:right}
+.pbtn:hover{border-color:var(--pri)}
+.pbtn.on{background:var(--okbg);color:var(--ok);border-color:transparent}
 #printArea{display:none}
 body.printing #printArea{display:block;position:absolute;left:-10000px;top:0}
 .page{width:210mm;height:297mm;padding:7mm 7mm 6mm;box-sizing:border-box;overflow:hidden;background:#fff;color:#000;break-after:page;page-break-after:always}
@@ -117,7 +124,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.12</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.13</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -479,7 +486,7 @@ async function handlePremFile(file){const ag=AG();let rows;
   if(/\.csv$|\.txt$/i.test(file.name))rows=csvRows(await file.text());
   else{await loadXLSX();const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});if(wb.Sheets['Resumen']&&wb.SheetNames.some(n=>/^\d{2}$/.test(n)))return importPremiosXlsx(file,wb);rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''})}
   const R=premFromRows(rows);if(!R||!R.list.length){alert('No encontré premios en ese archivo. Tiene que tener las columnas "ticket" y "premiacion" (archivo de premiados del TDPbiz).');return}
-  if(R.fecha)S.premDate=R.fecha;const seen=new Set(allPrem(ag).map(([,x])=>x.b));const nuevos=[];let rep=0;for(const x of R.list){if(seen.has(x.b)){rep++;continue}seen.add(x.b);nuevos.push(x)}
+  if(R.fecha)S.premDate=R.fecha;const seen=new Set((ag.premios[S.premDate]||[]).map(x=>x.b));const nuevos=[];let rep=0;for(const x of R.list){if(seen.has(x.b)){rep++;continue}seen.add(x.b);nuevos.push(x)}
   S.premPrev={nuevos,rep,origen:file.name,fechaArchivo:R.fecha};save();S.tab='premios';render()}
 const hasPrem=(ag,ym)=>Object.keys(ag.premios||{}).some(d=>d.startsWith(ym)&&ag.premios[d].length);
 function allPrem(ag){const o=[];for(const d in ag.premios||{})for(const x of ag.premios[d])o.push([d,x]);return o}
@@ -490,7 +497,8 @@ const sorteoDe=b=>{const m=String(b).match(/^[A-Z]-(\d+)$/i);return m&&m[1].leng
 function parsePremios(text){const toks=String(text).replace(/\u00a0/g,' ').split(/\s+/).filter(Boolean);const out=[];
   toks.forEach((t,i)=>{if(!/^[A-Z]-\d{13,}$/i.test(t))return;const prev=toks[i-1]||'',nx=toks[i+1]||'';
     out.push({b:t.toUpperCase(),s:sorteoDe(t),c:/^\d{1,7}$/.test(prev)?String(+prev):'',m:isNumCell(nx)?pnum(nx):0})});return out.filter(x=>x.m>0)}
-function findPrem(ag,b){for(const d in ag.premios||{})for(const x of ag.premios[d])if(x.b===b)return[d,x];return null}
+function findPrem(ag,k){const i=String(k).indexOf('|');if(i>0){const d=k.slice(0,i),b=k.slice(i+1);const x=(ag.premios[d]||[]).find(x=>x.b===b);return x?[d,x]:null}for(const d in ag.premios||{})for(const x of ag.premios[d])if(x.b===k)return[d,x];return null}
+const pkey=(d,x)=>d+'|'+x.b;
 function payPrize(ag,d,x,D){const ym=monthOf(d),dep=ag.pncDep[ym];
   if(dep&&dep.fecha<=D){if(!confirm(`Este premio es de ${mesTxt(ym)}, que ya se depositó el ${dmy(dep.fecha)}.\n\nLo paga la agencia: se registra en Gastos como "${PCAT}" (Corr. ${x.c}, ticket ${x.b}, sorteo ${x.s}, ${dmy(d)}, ${gs(x.m)}). ¿Continuar?`))return false;
     const g={id:uid(),fecha:D,cat:PCAT,desc:`Corr. ${x.c} · Ticket ${x.b} · Sorteo ${x.s} · ${dmy(d)}`,monto:x.m,prem:{c:x.c,b:x.b,f:d,s:x.s}};ag.gastos.push(g);x.g=g.id}
@@ -514,36 +522,36 @@ async function importPremiosXlsx(file,wb0){
 function vPremios(){
   const ag=AG(),D=S.date,ym=monthOf(D),pym=prevYm(ym);if(!S.premDate)S.premDate=addDays(iso(new Date()),-1);const PD=S.premDate;
   const A=pncCalc(ag,ym,D,false),P=pncCalc(ag,pym,D,false);const all=allPrem(ag);
-  const hoy=all.filter(([,x])=>x.pf===D);const cargadosPD=(ag.premios[PD]||[]);
+  const hoy=all.filter(([,x])=>x.pf===D);const PL=ag.premios[PD]||[];
+  const isPaid=x=>x.pf&&x.pf<=D;
   let h=`<div class="sectitle">Premios no cobrados (PNC) · ${esc(ag.name)} · al ${dmy(D)}</div><div class="kpis">`+
-    kpi(`PNC ${mesTxt(ym)}`,gs(A.saldo),`${A.np} premios sin cobrar · de ${gs(A.t)} en premios`)+
+    kpi(`PNC ${mesTxt(ym)}`,gs(A.saldo),`${A.np} premios sin cobrar`)+
     kpi(`PNC ${mesTxt(pym)}`,P.closed?'Depositado':gs(P.saldo),P.closed?`${gs(P.dep.monto)} el ${dmy(P.dep.fecha)}`:`${P.np} premios sin cobrar`,P.closed?'pos':'')+
-    kpi(`Pagados el ${dm(D)}`,gs(sumL(hoy.map(([,x])=>({monto:x.m})))),`${hoy.length} premios`)+
-    kpi(`Premios del sorteo ${dm(PD)}`,gs(cargadosPD.reduce((s,x)=>s+x.m,0)),`${cargadosPD.length} cargados`)+`</div>`;
-  // pagar
-  const fc=S.premCorr||'';const pend=all.filter(([d,x])=>!(x.pf&&x.pf<=D)&&d<=D&&(d.startsWith(ym)||d.startsWith(pym))&&(!fc||x.c===fc)).sort((a,b)=>a[0].localeCompare(b[0])||(+a[1].c)-(+b[1].c));
-  h+=`<div class="card"><h2>Registrar premios pagados · ${dmy(D)}<span class="sp"></span><span class="note">La fecha de pago es la de arriba.</span></h2><div class="row">
+    kpi(`Pagados el ${dm(D)}`,gs(hoy.reduce((s,[,x])=>s+x.m,0)),`${hoy.length} premios`)+`</div>`;
+  // ---- planilla del día (formato Excel) ----
+  const tot=PL.reduce((s,x)=>s+x.m,0),pg=PL.filter(isPaid).reduce((s,x)=>s+x.m,0);
+  h+=`<div class="card"><h2><button class="btn sm ghost" data-a="pdprev" title="Día anterior">◀</button><input id="premd" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(PD)}" title="Fecha del sorteo"><button class="btn sm ghost" data-a="pdnext" title="Día siguiente">▶</button> Premios del ${dowOf(PD)} ${dmy(PD)}<span class="sp"></span><button class="btn sm" data-a="pfile">📄 Cargar archivo del TDPbiz</button><button class="btn sm ghost" data-a="pimp">Importar planilla del mes</button></h2>
+   <div class="row" style="gap:18px;margin-bottom:8px"><span>Total <b>${fmt(tot)}</b></span><span class="pos">Pagados <b>${fmt(pg)}</b></span><span class="${tot-pg?'neg':''}">No pagados <b>${fmt(tot-pg)}</b></span><span class="note">Tocá la casilla <b>Pagado</b> de cada premio para marcarlo como pagado el <b>${dmy(D)}</b> (la fecha de arriba). Tocála de nuevo para deshacer. También podés arrastrar el archivo del TDPbiz a esta pantalla.</span></div>`;
+  if(S.premPrev){const pv=S.premPrev;h+=`<div class="alert ${pv.nuevos.length?'ok':''}">${pv.origen?esc(pv.origen)+' · ':''}<b>${pv.nuevos.length} premios nuevos · ${gs(pv.nuevos.reduce((s,x)=>s+x.m,0))}</b>${pv.rep?` · ${pv.rep} ya estaban cargados`:''} · fecha del sorteo <b>${dmy(PD)}</b>${pv.fechaArchivo&&pv.fechaArchivo!==PD?` <span class="badge warn">el archivo dice ${dmy(pv.fechaArchivo)}</span>`:''}<br>${SORTEOS.map(n=>{const L=pv.nuevos.filter(x=>x.s===n);return L.length?`Sorteo ${n}: ${L.length} · ${fmt(L.reduce((s,x)=>s+x.m,0))}`:''}).filter(Boolean).join(' &nbsp;·&nbsp; ')}</div><div class="row" style="margin-bottom:10px"><button class="btn" data-a="psave2" ${pv.nuevos.length?'':'disabled'}>Guardar en ${dmy(PD)}</button><button class="btn ghost" data-a="pcancel2">Cancelar</button></div>`}
+  if(!PL.length&&!S.premPrev)h+=`<div id="pdrop" class="pdrop" data-a="pfile"><b>No hay premios cargados para el ${dmy(PD)}.</b><br>Arrastrá acá el archivo de premiados del TDPbiz (.csv o .xlsx) o tocá para elegirlo.</div>`;
+  h+=`<div class="row" style="margin:-2px 0 8px"><span class="note">Agregar premio a mano en el sorteo:</span>${SORTEOS.map(n=>`<button class="btn sm ghost" data-a="peopen" data-s="${n}">${n}</button>`).join('')}</div>`;
+  h+=`<div class="sgrid">${SORTEOS.map(n=>{const L=PL.filter(x=>x.s===n).sort((a,b)=>(+a.c)-(+b.c));if(!L.length&&!(S.peOpen||{})[n])return'';const t=L.reduce((s,x)=>s+x.m,0),p=L.filter(isPaid).reduce((s,x)=>s+x.m,0);
+    return`<div class="scol" data-s="${n}"><div class="shead"><b>SORTEO ${n}</b> <span class="note">${esc(sorteoNombre(n))}</span><span class="sp"></span><button class="btn sm ghost" data-a="peopen" data-s="${n}" title="Agregar un premio a mano">+</button></div>
+      <table class="xl"><thead><tr><th>Corredor</th><th class="tl">Nro. de Boleta</th><th>Premio</th><th>Pagado</th><th>No pagado</th><th></th></tr>
+      <tr class="tots"><td>Totales</td><td></td><td>${fmt(t)}</td><td>${fmt(p)}</td><td>${fmt(t-p)}</td><td></td></tr></thead><tbody>${L.map(x=>{const pd=isPaid(x);return`<tr class="${pd?'pd':''}"><td class="c"><b>${esc(x.c)}</b></td><td class="tl bol">${esc(x.b)}</td><td>${fmt(x.m)}</td><td class="pcell"><button class="pbtn ${pd?'on':''}" data-a="ptog" data-b="${PD}|${esc(x.b)}" title="${pd?(x.imp?'Pagado':'Pagado el '+dmy(x.pf))+' · tocá para deshacer':'Marcar como pagado'}">${pd?fmt(x.m):'Pagar'}</button></td><td class="${pd?'':'neg'}">${pd?0:fmt(x.m)}</td><td><button class="btn x" data-a="pdel" data-b="${PD}|${esc(x.b)}" title="Borrar premio">✕</button></td></tr>`}).join('')}
+      ${(S.peOpen||{})[n]?`<tr class="pentry"><td><input class="num pe-c" inputmode="numeric" placeholder="Corr." style="width:56px"></td><td class="tl"><input class="pe-b" placeholder="${SLET[n]}-${n}…" style="width:100%;min-width:120px"></td><td><input class="money pe-m" inputmode="numeric" placeholder="0" style="width:90px"></td><td colspan="3"><button class="btn sm" data-a="padd2" data-s="${n}">Agregar</button></td></tr>`:''}</tbody></table></div>`}).join('')}</div></div>`;
+  // ---- búsqueda / pendientes ----
+  const fc=S.premCorr||'';const pend=all.filter(([d,x])=>!isPaid(x)&&d<=D&&(d.startsWith(ym)||d.startsWith(pym))&&(!fc||x.c===fc)).sort((a,b)=>a[0].localeCompare(b[0])||(+a[1].c)-(+b[1].c));
+  h+=`<details class="card" ${S.premMatches||fc?'open':''}><summary style="cursor:pointer;font-weight:700">Buscar boleta y premios pendientes de otros días <span class="note">(${pend.length} pendientes · ${gs(pend.reduce((s,[,x])=>s+x.m,0))})</span></summary><div class="row" style="margin-top:10px">
     <label>N° de boleta (o sus últimos dígitos)<input id="pbol" style="width:230px" placeholder="Ej.: 7014001 y Enter"></label><button class="btn" data-a="ppay" style="align-self:flex-end">Pagar</button>
-    <span style="width:20px"></span><label>Filtrar por corredor<input id="pcorr" class="num" inputmode="numeric" value="${esc(fc)}" placeholder="Todos"></label>${fc?`<button class="btn sm ghost" data-a="pcorrclr" style="align-self:flex-end">Ver todos</button>`:''}</div>`;
-  if(S.premMatches&&S.premMatches.length)h+=`<div class="alert" style="margin-top:10px">Hay ${S.premMatches.length} premios que coinciden. Elegí cuál se paga:</div><div class="tw"><table><tbody>${S.premMatches.map(b=>{const f=findPrem(ag,b);if(!f)return'';const[d,x]=f;return`<tr><td>${dmy(d)}</td><td>Sorteo ${x.s}</td><td>Corr. ${esc(x.c)}</td><td class="tl">${esc(x.b)}</td><td>${fmt(x.m)}</td><td><button class="btn sm" data-a="ppayb" data-b="${esc(x.b)}">Pagar este</button></td></tr>`}).join('')}</tbody></table></div>`;
-  h+=`<h3>Pendientes de cobro${fc?' del corredor '+esc(fc):''} · ${pend.length} premios · ${gs(pend.reduce((s,[,x])=>s+x.m,0))}<span style="float:right">${pend.length?`<button class="btn sm" data-a="ppaysel">Pagar seleccionados</button>`:''}</span></h3>
-   <div class="tw" style="max-height:420px;overflow:auto"><table><thead><tr><th class="tl"><input type="checkbox" id="pall" title="Seleccionar todos"></th><th>Sorteo del</th><th>Sorteo</th><th>Corredor</th><th class="tl">Boleta</th><th>Premio</th><th class="tl">Mes</th><th></th></tr></thead><tbody>${pend.map(([d,x])=>{const dep=ag.pncDep[monthOf(d)];return`<tr><td class="tl"><input type="checkbox" class="psel" value="${esc(x.b)}"></td><td>${dmy(d)}</td><td>${x.s}</td><td><b>${esc(x.c)}</b></td><td class="tl">${esc(x.b)}</td><td>${fmt(x.m)}</td><td class="tl">${dep&&dep.fecha<=D?'<span class="badge warn">ya depositado → Gasto</span>':monthOf(d)===pym?'<span class="badge">mes anterior</span>':''}</td><td><button class="btn sm ghost" data-a="ppayb" data-b="${esc(x.b)}">Pagar</button></td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No hay premios pendientes</td></tr>'}</tbody></table></div>`;
-  if(hoy.length)h+=`<h3>Pagados el ${dmy(D)} · ${hoy.length} · ${gs(hoy.reduce((s,[,x])=>s+x.m,0))}</h3><div class="tw"><table><tbody>${hoy.map(([d,x])=>`<tr><td>${dmy(d)}</td><td>Sorteo ${x.s}</td><td>Corr. <b>${esc(x.c)}</b></td><td class="tl">${esc(x.b)}${x.g?' <span class="badge warn">en Gastos</span>':''}</td><td>${fmt(x.m)}</td><td><button class="btn x" data-a="punpay" data-b="${esc(x.b)}" title="Deshacer pago">↺</button></td></tr>`).join('')}</tbody></table></div>`;
-  h+=`</div>`;
-  // cargar
-  h+=`<div class="card"><h2>Cargar premios del sorteo<span class="sp"></span><label class="row" style="font-size:12px;color:var(--muted)">Fecha del sorteo <input id="premd" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(PD)}"></label><button class="btn sm ghost" data-a="pimp">Importar planilla Excel del mes</button></h2>
-   <div id="pdrop" class="pdrop" data-a="pfile"><b>Arrastrá acá el archivo de premiados del TDPbiz</b> (.csv o .xlsx) <span class="note">o tocá para elegirlo · la fecha se toma del archivo</span></div>
-   <details style="margin-top:8px"><summary class="note" style="cursor:pointer">Pegar premios como texto</summary><p class="note">La app busca cada N° de boleta y toma el corredor que está antes y el premio que está después.</p><textarea id="ppaste" style="min-height:70px" placeholder="1	A-1110537014001	150.000"></textarea><div class="row" style="margin-top:6px"><button class="btn sm" data-a="pparse2">Procesar</button></div></details>`;
-  if(S.premPrev){const pv=S.premPrev;h+=`<div class="alert ${pv.nuevos.length?'ok':''}" style="margin-top:10px">${pv.origen?esc(pv.origen)+' · ':''}<b>${pv.nuevos.length} premios nuevos · ${gs(pv.nuevos.reduce((s,x)=>s+x.m,0))}</b>${pv.rep?` · ${pv.rep} ya estaban cargados`:''} · fecha del sorteo <b>${dmy(PD)}</b>${pv.fechaArchivo&&pv.fechaArchivo!==PD?` <span class="badge warn">el archivo dice ${dmy(pv.fechaArchivo)}</span>`:''}<br>${SORTEOS.map(n=>{const L=pv.nuevos.filter(x=>x.s===n);return L.length?`Sorteo ${n}: ${L.length} · ${fmt(L.reduce((s,x)=>s+x.m,0))}`:''}).filter(Boolean).join(' &nbsp;·&nbsp; ')}</div><div class="row"><button class="btn" data-a="psave2" ${pv.nuevos.length?'':'disabled'}>Guardar en ${dmy(PD)}</button><button class="btn ghost" data-a="pcancel2">Cancelar</button></div>`}
-  const PL=ag.premios[PD]||[];const tot=PL.reduce((s,x)=>s+x.m,0),np=PL.filter(x=>!(x.pf&&x.pf<=D)).reduce((s,x)=>s+x.m,0);
-  h+=`<h3>Planilla del ${dowOf(PD)} ${dmy(PD)} · ${PL.length} premios · total ${gs(tot)} · pagados ${gs(tot-np)} · no pagados ${gs(np)}</h3><div class="sgrid">${SORTEOS.map(n=>{const L=PL.filter(x=>x.s===n).sort((a,b)=>(+a.c)-(+b.c));const t=L.reduce((s,x)=>s+x.m,0),pg=L.filter(x=>x.pf&&x.pf<=D).reduce((s,x)=>s+x.m,0);
-    return`<div class="scol" data-s="${n}"><div class="shead"><b>SORTEO ${n}</b> <span class="note">${esc(sorteoNombre(n))}</span><span class="sp"></span><b>${fmt(t)}</b></div><table><thead><tr><th>Corr.</th><th class="tl">Boleta</th><th>Premio</th><th></th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.c)}</td><td class="tl" style="font-size:12px">${esc(x.b)}</td><td>${fmt(x.m)}</td><td style="white-space:nowrap">${x.pf&&x.pf<=D?`<span class="badge ok" title="Pagado${x.imp?'':' el '+dmy(x.pf)}">✓</span>`:'<span class="badge warn" title="Sin cobrar">•</span>'}<button class="btn x" data-a="pdel" data-b="${esc(x.b)}" title="Borrar">✕</button></td></tr>`).join('')}
-      <tr class="pentry"><td><input class="num pe-c" inputmode="numeric" placeholder="Corr." style="width:56px"></td><td class="tl"><input class="pe-b" placeholder="${SLET[n]}-${n}…" style="width:100%;min-width:120px"></td><td><input class="money pe-m" inputmode="numeric" placeholder="0" style="width:90px"></td><td><button class="btn sm" data-a="padd2" data-s="${n}" title="Agregar">+</button></td></tr></tbody>
-      <tfoot><tr><td colspan="2">Pagados ${fmt(pg)}</td><td colspan="2">No pag. ${fmt(t-pg)}</td></tr></tfoot></table></div>`}).join('')}</div>
-   <p class="note">En la fila de carga: corredor → Enter → boleta (podés escribir solo los 12 dígitos finales y la app agrega "${SLET[1]}-1", "${SLET[2]}-2"… según el sorteo) → Enter → premio → Enter.</p></div>`;
-  // resumen + deposito
-  const resMes=k=>{const rows=[];const dim=daysInMonth(k);let T=0,Pg=0;for(let i=1;i<=dim;i++){const d=k+'-'+pad(i);const L=ag.premios[d]||[];if(!L.length)continue;const t=L.reduce((s,x)=>s+x.m,0),pg=L.filter(x=>x.pf&&x.pf<=D).reduce((s,x)=>s+x.m,0);T+=t;Pg+=pg;rows.push(`<tr class="click" data-a="pgoto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(t)}</td><td>${fmt(pg)}</td><td class="${t-pg?'neg':''}">${fmt(t-pg)}</td></tr>`)}
-    return`<div class="tw"><table><thead><tr><th>Fecha</th><th>Total premios</th><th>Pagados</th><th>No pagados</th></tr></thead><tbody>${rows.join('')||'<tr><td colspan="4" class="empty">Sin premios</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(T)}</td><td>${fmt(Pg)}</td><td>${fmt(T-Pg)}</td></tr></tfoot></table></div>`};
+    <span style="width:20px"></span><label>Filtrar por corredor<input id="pcorr" class="num" inputmode="numeric" value="${esc(fc)}" placeholder="Todos"></label>${fc?`<button class="btn sm ghost" data-a="pcorrclr" style="align-self:flex-end">Ver todos</button>`:''}${pend.length?`<span class="sp" style="flex:1"></span><button class="btn sm" data-a="ppaysel" style="align-self:flex-end">Pagar seleccionados</button>`:''}</div>`;
+  if(S.premMatches&&S.premMatches.length)h+=`<div class="alert" style="margin-top:10px">Hay ${S.premMatches.length} premios que coinciden. Elegí cuál se paga:</div><div class="tw"><table><tbody>${S.premMatches.map(k=>{const f=findPrem(ag,k);if(!f)return'';const[d,x]=f;return`<tr><td>${dmy(d)}</td><td>Sorteo ${x.s}</td><td>Corr. ${esc(x.c)}</td><td class="tl">${esc(x.b)}</td><td>${fmt(x.m)}</td><td><button class="btn sm" data-a="ppayb" data-b="${d}|${esc(x.b)}">Pagar este</button></td></tr>`}).join('')}</tbody></table></div>`;
+  h+=`<div class="tw" style="max-height:380px;overflow:auto;margin-top:10px"><table><thead><tr><th class="tl"><input type="checkbox" id="pall" title="Seleccionar todos"></th><th>Sorteo del</th><th>Sorteo</th><th>Corredor</th><th class="tl">Boleta</th><th>Premio</th><th class="tl">Mes</th><th></th></tr></thead><tbody>${pend.map(([d,x])=>{const dep=ag.pncDep[monthOf(d)];return`<tr><td class="tl"><input type="checkbox" class="psel" value="${d}|${esc(x.b)}"></td><td class="click" data-a="pgoto" data-d="${d}">${dmy(d)}</td><td>${x.s}</td><td><b>${esc(x.c)}</b></td><td class="tl">${esc(x.b)}</td><td>${fmt(x.m)}</td><td class="tl">${dep&&dep.fecha<=D?'<span class="badge warn">ya depositado → Gasto</span>':monthOf(d)===pym?'<span class="badge">mes anterior</span>':''}</td><td><button class="btn sm ghost" data-a="ppayb" data-b="${d}|${esc(x.b)}">Pagar</button></td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No hay premios pendientes</td></tr>'}</tbody></table></div>`;
+  if(hoy.length)h+=`<h3>Pagados el ${dmy(D)} · ${hoy.length} · ${gs(hoy.reduce((s,[,x])=>s+x.m,0))}</h3><div class="tw"><table><tbody>${hoy.map(([d,x])=>`<tr><td class="click" data-a="pgoto" data-d="${d}">${dmy(d)}</td><td>Sorteo ${x.s}</td><td>Corr. <b>${esc(x.c)}</b></td><td class="tl">${esc(x.b)}${x.g?' <span class="badge warn">en Gastos</span>':''}</td><td>${fmt(x.m)}</td><td><button class="btn x" data-a="punpay" data-b="${d}|${esc(x.b)}" title="Deshacer pago">↺</button></td></tr>`).join('')}</tbody></table></div>`;
+  h+=`<details style="margin-top:8px"><summary class="note" style="cursor:pointer">Pegar premios como texto</summary><textarea id="ppaste" style="min-height:70px" placeholder="1	A-1110537014001	150.000"></textarea><div class="row" style="margin-top:6px"><button class="btn sm" data-a="pparse2">Procesar</button></div></details></details>`;
+  // ---- resumen + depósito ----
+  const resMes=k=>{const rows=[];const dim=daysInMonth(k);let T=0,Pg=0;for(let i=1;i<=dim;i++){const d=k+'-'+pad(i);const L=ag.premios[d]||[];if(!L.length)continue;const t=L.reduce((s,x)=>s+x.m,0),pg=L.filter(isPaid).reduce((s,x)=>s+x.m,0);T+=t;Pg+=pg;rows.push(`<tr class="click ${d===PD?'sel':''}" data-a="pgoto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(t)}</td><td>${fmt(pg)}</td><td class="${t-pg?'neg':''}">${fmt(t-pg)}</td></tr>`)}
+    return`<div class="tw"><table><thead><tr><th>Fecha</th><th>Total premios</th><th>Pagados</th><th>No pagados</th></tr></thead><tfoot><tr><td>Total</td><td>${fmt(T)}</td><td>${fmt(Pg)}</td><td>${fmt(T-Pg)}</td></tr></tfoot><tbody>${rows.join('')||'<tr><td colspan="4" class="empty">Sin premios</td></tr>'}</tbody></table></div>`};
   const dep=ag.pncDep[pym];
   h+=`<div class="grid2"><div class="card"><h2>Resumen ${mesTxt(ym)}</h2>${resMes(ym)}</div><div class="card"><h2>Resumen ${mesTxt(pym)}</h2>${resMes(pym)}
    <h3>Depósito del PNC de ${mesTxt(pym)}</h3>${dep?`<div class="alert ok">Depositado el <b>${dmy(dep.fecha)}</b>: <b>${gs(dep.monto)}</b>${dep.nota?' · '+esc(dep.nota):''}. Desde esa fecha deja de sumar en el cierre; si alguien cobra un premio de ese mes, se registra en Gastos como "${PCAT}". <button class="btn sm ghost" data-a="pdepdel">Anular depósito</button></div>`:
@@ -808,7 +816,7 @@ const ACT={
   ppay:()=>{const ag=AG(),D=S.date,ym=monthOf(D),pym=prevYm(ym);const q=String($('#pbol').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(q.length<3){toast('Escribí al menos 3 dígitos de la boleta');return}
     const all=allPrem(ag).filter(([d,x])=>x.b.replace(/[^A-Z0-9]/g,'').includes(q));const pend=all.filter(([d,x])=>!(x.pf&&x.pf<=D)&&d<=D);
     if(!pend.length){const p=all.find(([,x])=>x.pf);toast(p?`Esa boleta ya figura pagada el ${dmy(p[1].pf)}`:'No encontré esa boleta entre los premios cargados');return}
-    if(pend.length>1){S.premMatches=pend.map(([,x])=>x.b);render();return}
+    if(pend.length>1){S.premMatches=pend.map(([d,x])=>pkey(d,x));render();return}
     const[d,x]=pend[0];if(payPrize(ag,d,x,D)){S.premMatches=null;save();toast(`Pagado: Corr. ${x.c} · ${x.b} · ${gs(x.m)}`);render();setTimeout(()=>{const e=$('#pbol');if(e)e.focus()},0)}},
   ppayb:b=>{const ag=AG();const f=findPrem(ag,b.dataset.b);if(f&&payPrize(ag,f[0],f[1],S.date)){S.premMatches=null;save();toast(`Pagado: ${f[1].b} · ${gs(f[1].m)}`);render()}},
   ppaysel:()=>{const ag=AG();const sel=[...document.querySelectorAll('.psel:checked')].map(x=>x.value);if(!sel.length){toast('Marcá los premios a pagar');return}
@@ -816,7 +824,7 @@ const ACT={
   punpay:b=>{const ag=AG();const f=findPrem(ag,b.dataset.b);if(!f)return;const x=f[1];if(x.g){ag.gastos=ag.gastos.filter(g=>g.id!==x.g);delete x.g}x.pf=null;delete x.imp;save();toast('Pago deshecho');render()},
   pgoto:b=>{S.premDate=b.dataset.d;render()},
   pparse2:()=>{const ag=AG();const L=parsePremios($('#ppaste').value);if(!L.length){alert('No encontré números de boleta (formato A-1110537014001) en lo que pegaste.');return}
-    const seen=new Set(allPrem(ag).map(([,x])=>x.b));const nuevos=[];let rep=0;for(const x of L){if(seen.has(x.b)){rep++;continue}seen.add(x.b);nuevos.push(x)}S.premPrev={nuevos,rep};render()},
+    const seen=new Set((ag.premios[S.premDate]||[]).map(x=>x.b));const nuevos=[];let rep=0;for(const x of L){if(seen.has(x.b)){rep++;continue}seen.add(x.b);nuevos.push(x)}S.premPrev={nuevos,rep};render()},
   pcancel2:()=>{S.premPrev=null;render()},
   psave2:()=>{const ag=AG();const L=ag.premios[S.premDate]=ag.premios[S.premDate]||[];S.premPrev.nuevos.forEach(x=>L.push({b:x.b,s:x.s,c:x.c,m:x.m,pf:null}));toast(`${S.premPrev.nuevos.length} premios cargados`);S.premPrev=null;save();render()},
   padd:()=>{const ag=AG();const b=$('#pmb').value.trim().toUpperCase(),c=$('#pmc').value.trim(),m=pnum($('#pmm').value),sv=+$('#pms').value;if(!b||!m){toast('Completá boleta y premio');return}
@@ -824,9 +832,14 @@ const ACT={
   pdel:b=>{const ag=AG();const f=findPrem(ag,b.dataset.b);if(!f||!confirm(`¿Borrar el premio ${f[1].b} (${gs(f[1].m)})?`))return;if(f[1].g)ag.gastos=ag.gastos.filter(g=>g.id!==f[1].g);ag.premios[f[0]]=ag.premios[f[0]].filter(x=>x!==f[1]);if(!ag.premios[f[0]].length)delete ag.premios[f[0]];save();render()},
   pimp:()=>$('#fileprem').click(),
   pfile:()=>$('#fileprem').click(),
+  pdprev:()=>{S.premDate=addDays(S.premDate,-1);S.premPrev=null;render()},pdnext:()=>{S.premDate=addDays(S.premDate,1);S.premPrev=null;render()},
+  peopen:b=>{S.peOpen=S.peOpen||{};const n=b.dataset.s;S.peOpen[n]=!S.peOpen[n];if(S.peOpen[n])S.peFocus=+n;render()},
+  ptog:b=>{const ag=AG(),D=S.date;const f=findPrem(ag,b.dataset.b);if(!f)return;const[d,x]=f;
+    if(x.pf&&x.pf<=D){if(x.pf!==D&&!confirm(`Este premio figura pagado${x.imp?'':' el '+dmy(x.pf)}. ¿Marcarlo como NO pagado?`))return;if(x.g){ag.gastos=ag.gastos.filter(g=>g.id!==x.g);delete x.g}x.pf=null;delete x.imp}
+    else if(!payPrize(ag,d,x,D))return;save();render()},
   padd2:b=>{const ag=AG(),n=+b.dataset.s;const col=document.querySelector(`.scol[data-s="${n}"]`);const c=col.querySelector('.pe-c').value.trim(),bo=normBoleta(col.querySelector('.pe-b').value,n),m=pnum(col.querySelector('.pe-m').value);
     if(!bo||!m){toast('Completá boleta y premio');return}if(!/^[A-Z]-\d{13,}$/.test(bo)&&!confirm(`La boleta "${bo}" no tiene el formato habitual (${SLET[n]}-${n}…). ¿Agregarla igual?`))return;
-    if(findPrem(ag,bo)){toast('Esa boleta ya está cargada');return}const sn=sorteoDe(bo);if(sn&&sn!==n&&!confirm(`La boleta parece del sorteo ${sn}, no del ${n}. ¿Agregarla en el sorteo ${sn}?`))return;
+    if(findPrem(ag,S.premDate+'|'+bo)){toast('Esa boleta ya está cargada en este día');return}const sn=sorteoDe(bo);if(sn&&sn!==n&&!confirm(`La boleta parece del sorteo ${sn}, no del ${n}. ¿Agregarla en el sorteo ${sn}?`))return;
     (ag.premios[S.premDate]=ag.premios[S.premDate]||[]).push({b:bo,s:sn||n,c,m,pf:null});save();toast(`Agregado: Corr. ${c} · ${fmt(m)}`);S.peFocus=n;render()},
   pdep:()=>{const ag=AG(),pym=prevYm(monthOf(S.date));const monto=pnum($('#pdepm').value);if(!confirm(`¿Registrar el depósito del PNC de ${mesTxt(pym)} por ${gs(monto)} el ${dmy(S.date)}?`))return;ag.pncDep[pym]={fecha:S.date,monto,nota:$('#pdepn').value.trim()};save();toast('Depósito registrado');render()},
   pdepdel:()=>{const ag=AG(),pym=prevYm(monthOf(S.date));if(confirm('¿Anular el depósito registrado?')){delete ag.pncDep[pym];save();render()}},
@@ -925,7 +938,8 @@ async function applyImport(j,origen='el backup'){
       await snapshot('Antes de restaurar');const keep={gClientId:DB.settings.gClientId,lastDrive:DB.settings.lastDrive};DB=j.data;load2();Object.assign(DB.settings,keep);toast('Respaldo restaurado')}
     else if(j.merge){const ag=DB.agencies[j.agency];if(!ag)throw new Error('Agencia desconocida');
       (j.products||[]).forEach(p=>{if(!ag.products.some(x=>norm(x.name)===norm(p.name)))ag.products.push(p)});
-      Object.assign(ag.ventas,j.ventas||{});Object.assign(ag.cobros,j.cobros||{});for(const ym in j.metas||{}){ag.metas[ym]=Object.assign(ag.metas[ym]||{},j.metas[ym])}
+      Object.assign(ag.ventas,j.ventas||{});Object.assign(ag.cobros,j.cobros||{});
+      if(j.premios){const meses=new Set(Object.keys(j.premios).map(monthOf));for(const d of Object.keys(ag.premios))if(meses.has(monthOf(d)))delete ag.premios[d];Object.assign(ag.premios,j.premios)}for(const ym in j.metas||{}){ag.metas[ym]=Object.assign(ag.metas[ym]||{},j.metas[ym])}
       toast(`Datos importados en ${ag.name}`)}
     save();render()}
 /* ---- copias locales (IndexedDB, últimas 3) ---- */
