@@ -403,8 +403,10 @@ function printCobros(which){const ag=AG(),D=S.date;let pages=cobPages(ag,D);if(w
   setTimeout(()=>window.print(),50)}
 function vCobros(){
   const ag=AG(),D=S.date,v=ag.cobros[D];
-  let h=`<div class="card noprint"><h2>Pegar cobros del ${dmy(D)}<span class="sp"></span><button class="btn sm ghost" data-a="cobayer">Usar fecha de ayer</button></h2>
-  <p class="note" style="margin-top:0">Copiá la <b>Planilla de Cobros</b> del TDPbiz (o la hoja COBROS de tu Excel) desde el encabezado "№ · Bruto · B. Quiniela…" hasta la última fila, y pegala acá. La fecha de arriba es la fecha de los cobros (la que sale impresa en la hoja).</p>
+  const dw=fromIso(D).getDay();const esHoy=D===iso(new Date());
+  let h=`<div class="card noprint"><h2>Pegar cobros del ${dmy(D)} · ${dowOf(D)}${dw===0?' <span class="badge">incluye ventas del sábado y domingo</span>':''}<span class="sp"></span><button class="btn sm ghost" data-a="cobayer">Usar fecha de ayer</button></h2>
+  ${esHoy?`<div class="alert">Ojo: la fecha elegida es <b>hoy</b>. La planilla de cobros lleva la fecha del día anterior (las ventas de ayer se cobran hoy).</div>`:''}
+  <p class="note" style="margin-top:0">Copiá la <b>Planilla de Cobros</b> del TDPbiz (o la hoja COBROS de tu Excel) desde el encabezado "№ · Bruto · B. Quiniela…" hasta la última fila, y pegala acá. Al entrar a Cobros la fecha se pone sola en <b>ayer</b>: es la que sale impresa en la hoja. Los lunes queda la fecha del <b>domingo</b> y la planilla trae sábado y domingo juntos.</p>
   <textarea id="cobpaste" placeholder="№	Bruto	B. Quiniela	C. Quiniela	…	Neto"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="cobparse">Procesar</button></div>`;
   if(S.cobPrev){const P=S.cobPrev;const g=cobGroups(ag,P.rows);
     h+=`<h3>Vista previa · ${P.rows.length} corredores · se guardará en el ${dmy(D)}</h3><div class="tw"><table><thead><tr><th>Cobrador</th><th>Corredores</th><th>B. Quiniela</th><th>Neto</th></tr></thead><tbody>${ag.cobradores.filter(c=>g[c.name].length).map(c=>`<tr><td>${esc(c.name)}</td><td>${g[c.name].length}</td><td>${fmt(sumK(g[c.name],'quin'))}</td><td>${fmt(sumK(g[c.name],'neto'))}</td></tr>`).join('')}${g.__SIN.length?`<tr><td><span class="badge warn">Sin asignar</span> ${g.__SIN.map(r=>r.n).join(', ')}</td><td>${g.__SIN.length}</td><td>${fmt(sumK(g.__SIN,'quin'))}</td><td>${fmt(sumK(g.__SIN,'neto'))}</td></tr>`:''}</tbody><tfoot><tr><td>Total</td><td>${P.rows.length}</td><td>${fmt(sumK(P.rows,'quin'))}</td><td>${fmt(sumK(P.rows,'neto'))}</td></tr></tfoot></table></div>`;
@@ -635,7 +637,7 @@ function ensureM(ag,ym){return ag.metas[ym]||(ag.metas[ym]={cobr:{}})}
 function cleanDay(ag,D){const v=ag.ventas[D];if(!v)return;for(const k in v.items){const it=v.items[k];if(!it.bruto&&!it.com&&!it.cant)delete v.items[k]}if(!Object.keys(v.items).length&&!v.sAnt&&!v.dep&&!v.sDep)delete ag.ventas[D]}
 const ACT={
   agency:b=>{DB.settings.agency=b.dataset.k;S.pastePrev=null;S.metaPaste=null;S.gEdit=null;save();render()},
-  tab:b=>{S.tab=b.dataset.k;render();scrollTo(0,0)},
+  tab:b=>{S.tab=b.dataset.k;if(S.tab==='cobros'&&S.date===iso(new Date()))S.date=addDays(S.date,-1);render();scrollTo(0,0)},
   theme:()=>{DB.settings.theme=DB.settings.theme==='dark'?'light':'dark';save();render()},
   dprev:()=>{S.date=addDays(S.date,-1);render()},dnext:()=>{S.date=addDays(S.date,1);render()},dtoday:()=>{S.date=iso(new Date());render()},
   goto:b=>{S.date=b.dataset.d;render()},
