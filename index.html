@@ -85,6 +85,19 @@ tr.hit td{background:var(--okbg)}
 .alert.ok{background:var(--okbg);color:var(--ok)}
 .dif{font-size:26px;font-weight:800;text-align:center;padding:10px;border-radius:10px}
 .dif.pos{background:var(--okbg)}.dif.neg{background:var(--badbg)}
+#printArea{display:none}
+body.printing #printArea{display:block;position:absolute;left:-10000px;top:0}
+.page{width:210mm;height:297mm;padding:7mm 7mm 6mm;box-sizing:border-box;overflow:hidden;background:#fff;color:#000;break-after:page;page-break-after:always}
+.page:last-child{break-after:auto;page-break-after:auto}
+table.rend{border-collapse:collapse;width:100%;table-layout:fixed;font:10pt Arial,Helvetica,sans-serif;color:#000;background:#fff;font-variant-numeric:normal}
+table.rend td,table.rend th{border:0.75pt solid #000;padding:0 3pt;height:14pt;line-height:13pt;text-align:right;white-space:nowrap;overflow:hidden;background:#fff;color:#000;position:static;font-size:10pt}
+table.rend th{font-weight:bold;text-align:center;font-size:8.5pt;padding:0 1pt}
+table.rend td.lb{font-weight:bold;text-align:left;font-size:8.5pt;padding:0 2pt}
+table.rend td.c{text-align:center}table.rend td.n{border:none}table.rend td.b{font-weight:bold}table.rend td.l{text-align:left}
+table.rend tr.gap td{border:none;height:14pt}
+.rendwrap{background:#fff;padding:10px;border-radius:8px;border:1px solid var(--line);overflow-x:auto;margin-bottom:12px}
+.rendwrap table.rend{min-width:720px}
+@media print{body.printing>*:not(#printArea){display:none!important}body.printing #printArea{position:static}@page{size:A4 portrait;margin:0}html,body{background:#fff!important}}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#18212f;color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:99}
 #toast.on{opacity:1}
 .tabsmall{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -106,6 +119,7 @@ tr.hit td{background:var(--okbg)}
 <main id="view"></main>
 <input type="file" id="fileimp" accept=".json,application/json" hidden>
 <div id="toast"></div>
+<div id="printArea"></div>
 <script>
 'use strict';
 /* ====================== utilidades ====================== */
@@ -146,12 +160,17 @@ const DEF_PRODUCTS=[['Quiniela',3],['Billetaje',0.5],['Tigo',0.4],['Paquetigo',0
 const DEF_CATS=['Salarios','Alquiler','Bolt','Combustible','Poli','Insumos de oficina','Gastos de oficina','Préstamo a corredor','Cargadores','Otros'];
 const DEF_MOTIVOS=['Deuda','Diferencia','Premio','Bloqueado','Pagando','Otro'];
 const BILL=[100000,50000,20000,10000,5000,2000],MON=[1000,500,100,50];
+const MAPEO_DEF={'17':{'Alcides Martínez':[1,5,6,9,12,13,15,16,23,27,31,32,33,35,41,43,46,50,80,95,115,117,131,155,167,173,175,184,186,223,243,262,264,284],
+  'Cristhian León VE':[2,20,37,39,73,84,89,92,128,130,163,169,207,269],'Osvaldo Esquivel':[4,8,30,63,100,101,105,106,121,143,170,200,202,203,204,232,294,999999]},
+  '26':{'Cristhian León SA':[1,2,3,4,5,6,7,8,11,12,17,21,22,23,24,25,27,29,31,39,43,46,47,54,74,75,77,81,88,100,101,102,104,106,1000]}};
+function defMapeo(code){const m={};for(const[c,l]of Object.entries(MAPEO_DEF[code]||{}))l.forEach(n=>m[String(n)]=c);return m}
 function defAgency(code){
   const ve=code==='17';
   return{code,name:ve?'Ag. 17 Villa Elisa':'Ag. 26 San Antonio',
     products:DEF_PRODUCTS.map(([name,pct])=>({name,pct})),
     gastoCats:[...DEF_CATS],motivos:[...DEF_MOTIVOS],
-    cobradores:ve?[{name:'Alcides Martínez',share:55},{name:'Osvaldo Esquivel',share:26},{name:'Cristhian León VE',share:19}]:[{name:'Cristhian León SA',share:100}],
+    cobradores:ve?[{name:'Alcides Martínez',share:55,alias:'ALCIDES',hoja:1},{name:'Osvaldo Esquivel',share:26,alias:'OSVI',hoja:2},{name:'Cristhian León VE',share:19,alias:'CL',hoja:2}]:[{name:'Cristhian León SA',share:100,alias:'CL',hoja:1}],
+    mapeo:defMapeo(code),cobros:{},
     rk:ve?{base:0.6,tiers:[{meta:950000001,pct:0.7},{meta:1000000001,pct:0.75},{meta:1200000001,pct:0.8}]}
          :{base:0.65,tiers:[{meta:400000001,pct:0.7},{meta:450000001,pct:0.75},{meta:500000001,pct:0.8}]},
     escala:(ve?[[750000001,.5],[800000001,.55],[850000001,.6],[900000001,.65],[950000001,.7],[1000000001,.75],[1200000001,.8],[1250000001,.85]]
@@ -263,11 +282,12 @@ function metasCalc(ag,ym){
   const tiersAg=[...ag.rk.tiers].sort((a,b)=>a.meta-b.meta);
   const cobs=ag.cobradores.map(c=>{
     const cm=(m.cobr||{})[c.name]||{};const det=cm.det||[];const detSum=det.reduce((s,x)=>s+(x.quin||0),0);
-    const r=cm.rec||detSum;const share=+c.share||0;
+    const cq=cobrosMes(ag,ym);const fromCob=cq.out[c.name]||0;
+    const r=cm.rec||detSum||fromCob;const share=+c.share||0;const src=cm.rec?'manual':detSum?'detalle':fromCob?'cobros':'';const cobDays=cq.days;
     const tiers=tiersAg.map(t=>({meta:t.meta*share/100,pct:t.pct}));
     let pct=ag.rk.base,lvl=0;tiers.forEach((t,i)=>{if(r>=t.meta){pct=t.pct;lvl=i+1}});
     const nt=tiers[lvl]||null;
-    return{name:c.name,share,rec:r,det,detSum,manual:!!cm.rec,tiers,pct,lvl,com:r*pct/100,base:r*ag.rk.base/100,next:nt,falta:nt?nt.meta-r:0};
+    return{name:c.name,share,rec:r,det,detSum,manual:!!cm.rec,src,cobDays,tiers,pct,lvl,com:r*pct/100,base:r*ag.rk.base/100,next:nt,falta:nt?nt.meta-r:0};
   });
   const sumRec=cobs.reduce((s,c)=>s+c.rec,0),totalRK=cobs.reduce((s,c)=>s+c.com,0);
   const comAg=rec*ag.comAgPct/100;const pCob=comAg?totalRK/comAg:0;const pAg=1-pCob;const pSG=ag.sueldosPct/100;
@@ -306,7 +326,7 @@ function parseCorredores(text){
 }
 
 /* ====================== render general ====================== */
-const TABS=[['resumen','Resumen'],['ventas','Ventas'],['gastos','Gastos'],['cierre','Cierre'],['deudas','Deudas'],['metas','Metas'],['ajustes','Ajustes']];
+const TABS=[['resumen','Resumen'],['ventas','Ventas'],['cobros','Cobros'],['gastos','Gastos'],['cierre','Cierre'],['deudas','Deudas'],['metas','Metas'],['ajustes','Ajustes']];
 function sigOf(el){if(!el||!el.closest||!el.closest('#view'))return null;if(el.id)return '#'+el.id;if(!el.dataset.c)return null;const d=el.dataset;return [d.c,d.p||'',d.k||'',d.n||'',d.i||'',d.f||''].join('|')}
 function refocus(sig){if(!sig)return;let el=null;if(sig[0]==='#')el=document.getElementById(sig.slice(1));else el=[...document.querySelectorAll('#view [data-c]')].find(x=>{const d=x.dataset;return [d.c,d.p||'',d.k||'',d.n||'',d.i||'',d.f||''].join('|')===sig});if(el){el.focus();if(el.select)el.select()}}
 function render(){if(S.defer){clearTimeout(render.t);render.t=setTimeout(()=>{const sig=sigOf(document.activeElement);doRender();refocus(sig)},0);return}doRender()}
@@ -316,9 +336,9 @@ function doRender(){
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button class="${S.tab===k?'on':''}" data-a="tab" data-k="${k}">${t}</button>`).join('');
   $('#datebar').innerHTML=`<button class="btn sm ghost" data-a="dprev" title="Día anterior">◀</button><input id="dinput" class="dinput" inputmode="numeric" maxlength="10" value="${dmy(S.date)}" title="Escribí la fecha dd/mm/aaaa"><button class="btn sm ghost" data-a="dnext" title="Día siguiente">▶</button><button class="btn sm ghost" data-a="dtoday">Hoy</button><span class="dlabel">${dowOf(S.date)} · ${mesTxt(monthOf(S.date))}</span>`;
   maskDate($('#dinput'),v=>{S.date=v;render()});
-  const V={resumen:vResumen,ventas:vVentas,gastos:vGastos,cierre:vCierre,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
+  const V={resumen:vResumen,ventas:vVentas,cobros:vCobros,gastos:vGastos,cierre:vCierre,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
   $('#view').innerHTML=V();
-  if(isClosed(AG(),monthOf(S.date))&&['ventas','gastos','cierre','deudas'].includes(S.tab)&&!(S.tab==='cierre'&&S.cmode==='mes')){
+  if(isClosed(AG(),monthOf(S.date))&&['ventas','cobros','gastos','cierre','deudas'].includes(S.tab)&&!(S.tab==='cierre'&&S.cmode==='mes')){
     $('#view').querySelectorAll('input,select,textarea,button[data-a]').forEach(el=>{if(!el.closest('[data-keep]')&&!['vmode','csv','cmode','dtipo'].includes(el.dataset.a)&&el.id!=='dfil')el.disabled=true});
     $('#view').insertAdjacentHTML('afterbegin',`<div class="alert" data-keep>🔒 ${mesTxt(monthOf(S.date))} está cerrado: solo se puede consultar. <button class="btn sm ghost" data-a="cmodemes">Ver cierre del mes</button></div>`)}
   if(S.tab==='ajustes'){fillSnaps();if(DB.settings.gClientId)GD.loadLib().catch(()=>{})}
@@ -326,6 +346,80 @@ function doRender(){
 }
 const kpi=(l,v,s='',cls='')=>`<div class="kpi"><div class="l">${l}</div><div class="v ${cls}">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
 const money=(c,val,extra='')=>`<input class="money" inputmode="numeric" data-c="${c}" ${extra} value="${val?fmt(val):''}" placeholder="0">`;
+
+/* ====================== COBROS / RENDICIONES ====================== */
+const COB_DEF=['№','Bruto','B. Quiniela','C. Quiniela','B. Billetaje','C. Billetaje','B. Tigo','C. Tigo','B. Personal','C. Personal','B. Claro','C. Claro','M. Más Efectivo','C. Más Efectivo','B.Raspadita','C.Raspadita','M. Raspa Incentivo','M. Raspa Credito','R. Prestamos','M. Recarga QW','C. Recarga QW','M. Retiro QW','C. Megaloto','M. Megaloto','C. MegalotoQR','M. MegalotoQR','C. Telebingo','M. Telebingo','M. Ria','C. Ria','Neto'];
+const COB_COLS=[['quin','B. Quiniela'],['bill','B. Billetaje'],['tigo','B. Tigo'],['pers','B. Personal'],['claro','B. Claro'],['rasp','B.Raspadita'],['prest','R. Prestamos'],['neto','Neto']];
+const hk=x=>norm(x).replace(/\s+/g,'');
+const COB_KEYS={n:['№','n','no','nº','n°','n.','nro','corredor','numerocorredor'],bruto:['bruto'],quin:['b.quiniela'],bill:['b.billetaje'],tigo:['b.tigo'],pers:['b.personal'],claro:['b.claro'],rasp:['b.raspadita'],prest:['r.prestamos'],neto:['neto']};
+const isNumCell=c=>/^-?[\d.,]+$/.test(c)||c==='-';
+function cobMap(hdr){const H=hdr.map(hk);const m={};for(const[k,al]of Object.entries(COB_KEYS)){const i=H.findIndex(h=>al.includes(h));m[k]=i}if(m.n<0)m.n=0;return m}
+function cobRow(cells,m){const g=k=>m[k]>=0&&cells[m[k]]!==undefined?pnum(cells[m[k]]):0;const o={n:String(pnum(cells[m.n]))};for(const k of['bruto','quin','bill','tigo','pers','claro','rasp','prest','neto'])o[k]=g(k);return o}
+function parseCobros(text){
+  const lines=String(text).replace(/\r/g,'').replace(/\u00a0/g,' ').split('\n');
+  let hdr=null,rows=[],total=null,raw=[];
+  if(lines.some(l=>l.split('\t').length>=5)){
+    for(const l of lines){const c=l.split('\t').map(x=>x.trim());if(c.length<5)continue;
+      if(!isNumCell(c[0])&&c.some(x=>/quiniela|neto/i.test(x))&&!/^total$/i.test(c[0])){hdr=c;continue}
+      if(/^total$/i.test(c[0])){total=c;continue}
+      if(c[0]!==''&&c[0]!=='-'&&isNumCell(c[0]))raw.push(c)}
+  }else{
+    const cells=lines.map(x=>x.trim()).filter(Boolean);let i=0;const pre=[];
+    while(i<cells.length&&!isNumCell(cells[i])){pre.push(cells[i]);i++}
+    const k=pre.findIndex(h=>COB_KEYS.n.includes(hk(h)));hdr=k>=0?pre.slice(k):pre.length>=5?pre:null;const N=(hdr||COB_DEF).length;
+    while(i<cells.length){if(!isNumCell(cells[i])){if(/^total$/i.test(cells[i]))total=[cells[i],...cells.slice(i+1,i+N)];i+=/^total$/i.test(cells[i])?N:1;continue}
+      const r=cells.slice(i,i+N);if(r.length<N)break;raw.push(r);i+=N}
+  }
+  const m=cobMap(hdr||COB_DEF);rows=raw.map(c=>cobRow(c,m)).filter(r=>r.n&&r.n!=='0');
+  const tot=total?cobRow(['0',...total.slice(1)],m):null;
+  return{rows,total:tot,cols:m};
+}
+const aliasOf=(ag,c)=>c.alias||(/le[oó]n/i.test(c.name)?'CL':/^osval/i.test(c.name)?'OSVI':c.name.split(' ')[0].toUpperCase());
+const hojaOf=(ag,c)=>c.hoja||(ag.code==='17'?(ag.cobradores.indexOf(c)===0?1:2):1);
+function cobGroups(ag,rows){const g={};for(const c of ag.cobradores)g[c.name]=[];g.__SIN=[];
+  for(const r of rows){const c=ag.mapeo[r.n];(c&&g[c]?g[c]:g.__SIN).push(r)}
+  for(const k in g)g[k].sort((a,b)=>(+a.n)-(+b.n));return g}
+function cobrosMes(ag,ym){const out={};let days=0;for(const d in ag.cobros||{}){if(!d.startsWith(ym))continue;days++;for(const r of ag.cobros[d].rows){const c=ag.mapeo[r.n];if(c)out[c]=(out[c]||0)+(r.quin||0)}}return{out,days}}
+const sumK=(rows,k)=>rows.reduce((s,r)=>s+(r[k]||0),0);
+function rendBlock(alias,D,rows){
+  const f=v=>fmt(v);const dd=fromIso(D);const fecha=dd.getDate()+'/'+(dd.getMonth()+1)+'/'+dd.getFullYear();
+  let h=`<tr><th>№</th>${COB_COLS.map(([,t])=>`<th>${t}</th>`).join('')}<th>${esc(alias)}</th></tr>`;
+  rows.forEach((r,i)=>{h+=`<tr><td class="c">${esc(r.n)}</td>${COB_COLS.map(([k])=>`<td>${f(r[k])}</td>`).join('')}${i===0?`<td class="c">${fecha}</td>`:'<td class="n"></td>'}</tr>`});
+  h+=`<tr><td class="n"></td>${COB_COLS.map(([k])=>`<td class="b">${f(sumK(rows,k))}</td>`).join('')}<td class="n"></td></tr><tr class="gap"><td colspan="10"></td></tr>`;
+  const L=['ADELANTOS','BILLETES','MONEDAS','PREMIOS','PAGARES','TOTAL','PAGADOS','RESULTADO'];
+  L.forEach((l,i)=>{const side=i<=6;h+=`<tr><td class="n"></td><td class="lb">${l}</td><td></td><td class="n"></td>${side?`<td class="lb">${i===0?'DEUDAS':i===6?'TOTAL':''}</td><td></td>`:'<td class="n"></td><td class="n"></td>'}<td class="n"></td>${side?`<td class="lb">${i===0?'Pagos':i===6?'TOTAL':''}</td><td></td>`:'<td class="n"></td><td class="n"></td>'}<td class="n"></td></tr>`});
+  return`<table class="rend"><colgroup><col style="width:5.5%">${'<col style="width:10.4%">'.repeat(8)}<col style="width:11.3%"></colgroup>${h}</table>`;
+}
+function cobPages(ag,D){const v=ag.cobros[D];if(!v)return[];const g=cobGroups(ag,v.rows);const pages={};
+  for(const c of ag.cobradores){if(!g[c.name].length)continue;const h=hojaOf(ag,c);(pages[h]=pages[h]||[]).push({alias:aliasOf(ag,c),name:c.name,rows:g[c.name]})}
+  const out=Object.keys(pages).sort((a,b)=>a-b).map(k=>({n:+k,blocks:pages[k]}));
+  if(g.__SIN.length)out.push({n:out.length+1,blocks:[{alias:'SIN ASIGNAR',name:'Sin asignar',rows:g.__SIN}]});return out}
+function pageHtml(p,D){return`<div class="page"><div class="pin">${p.blocks.map((b,i)=>(i?'<div style="height:28pt"></div>':'')+rendBlock(b.alias,D,b.rows)).join('')}</div></div>`}
+function printCobros(which){const ag=AG(),D=S.date;let pages=cobPages(ag,D);if(which)pages=pages.filter(p=>p.n===which);if(!pages.length){toast('No hay cobros cargados para imprimir');return}
+  const pa=$('#printArea');pa.innerHTML=pages.map(p=>pageHtml(p,D)).join('');document.body.classList.add('printing');
+  pa.querySelectorAll('.page').forEach(pg=>{const pin=pg.querySelector('.pin');const cs=getComputedStyle(pg);const avail=pg.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);if(pin.scrollHeight>avail)pin.style.zoom=(avail/pin.scrollHeight*0.99).toFixed(3)});
+  const done=()=>{document.body.classList.remove('printing');pa.innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
+  setTimeout(()=>window.print(),50)}
+function vCobros(){
+  const ag=AG(),D=S.date,v=ag.cobros[D];
+  let h=`<div class="card noprint"><h2>Pegar cobros del ${dmy(D)}<span class="sp"></span><button class="btn sm ghost" data-a="cobayer">Usar fecha de ayer</button></h2>
+  <p class="note" style="margin-top:0">Copiá la <b>Planilla de Cobros</b> del TDPbiz (o la hoja COBROS de tu Excel) desde el encabezado "№ · Bruto · B. Quiniela…" hasta la última fila, y pegala acá. La fecha de arriba es la fecha de los cobros (la que sale impresa en la hoja).</p>
+  <textarea id="cobpaste" placeholder="№	Bruto	B. Quiniela	C. Quiniela	…	Neto"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="cobparse">Procesar</button></div>`;
+  if(S.cobPrev){const P=S.cobPrev;const g=cobGroups(ag,P.rows);
+    h+=`<h3>Vista previa · ${P.rows.length} corredores · se guardará en el ${dmy(D)}</h3><div class="tw"><table><thead><tr><th>Cobrador</th><th>Corredores</th><th>B. Quiniela</th><th>Neto</th></tr></thead><tbody>${ag.cobradores.filter(c=>g[c.name].length).map(c=>`<tr><td>${esc(c.name)}</td><td>${g[c.name].length}</td><td>${fmt(sumK(g[c.name],'quin'))}</td><td>${fmt(sumK(g[c.name],'neto'))}</td></tr>`).join('')}${g.__SIN.length?`<tr><td><span class="badge warn">Sin asignar</span> ${g.__SIN.map(r=>r.n).join(', ')}</td><td>${g.__SIN.length}</td><td>${fmt(sumK(g.__SIN,'quin'))}</td><td>${fmt(sumK(g.__SIN,'neto'))}</td></tr>`:''}</tbody><tfoot><tr><td>Total</td><td>${P.rows.length}</td><td>${fmt(sumK(P.rows,'quin'))}</td><td>${fmt(sumK(P.rows,'neto'))}</td></tr></tfoot></table></div>`;
+    if(P.total){const ok=sumK(P.rows,'neto')===P.total.neto&&sumK(P.rows,'quin')===P.total.quin;h+=ok?`<div class="alert ok" style="margin-top:8px">✓ Coincide con la fila Total de la planilla.</div>`:`<div class="alert" style="margin-top:8px">La suma no coincide con la fila Total (Neto ${fmt(P.total.neto)}). Revisá que se haya copiado todo.</div>`}
+    if(P.cols.quin<0||P.cols.neto<0)h+=`<div class="alert" style="margin-top:8px">No encontré las columnas "B. Quiniela" o "Neto" en el encabezado; usé el orden estándar de la planilla.</div>`;
+    h+=`<div class="row" style="margin-top:8px"><button class="btn" data-a="cobsave">Guardar en ${dmy(D)}</button><button class="btn ghost" data-a="cobcancel">Cancelar</button></div>`}
+  h+=`</div>`;
+  if(!v){h+=`<div class="card"><div class="empty">No hay cobros cargados para el ${dmy(D)}.</div></div>`;return h}
+  const g=cobGroups(ag,v.rows);const pages=cobPages(ag,D);
+  h+=`<div class="kpis">${ag.cobradores.filter(c=>g[c.name].length).map(c=>kpi(esc(c.name),gs(sumK(g[c.name],'neto')),`Neto · ${g[c.name].length} corredores · Quiniela ${fmt(sumK(g[c.name],'quin'))}`)).join('')}${kpi('Total del día',gs(sumK(v.rows,'neto')),`${v.rows.length} corredores`)}</div>`;
+  if(g.__SIN.length)h+=`<div class="card"><h2><span class="badge warn">Sin asignar</span> Corredores que no tienen cobrador</h2><div class="row">${g.__SIN.map(r=>`<label>Corredor ${esc(r.n)}<select data-c="cobmap" data-k="${esc(r.n)}"><option value="">Elegir…</option>${ag.cobradores.map(c=>`<option>${esc(c.name)}</option>`).join('')}</select></label>`).join('')}</div><p class="note">Al asignarlo queda guardado para los próximos días (también se edita en Ajustes).</p></div>`;
+  h+=`<div class="card"><h2>Hojas de rendición · ${dmy(D)}<span class="sp"></span>${pages.map(p=>`<button class="btn sm ghost" data-a="cobprint" data-k="${p.n}">Imprimir hoja ${p.n} (${p.blocks.map(b=>esc(b.alias)).join(' + ')})</button>`).join('')}<button class="btn" data-a="cobprint" data-k="">🖨 Imprimir todas</button><button class="btn sm danger" data-a="cobdel">Borrar día</button></h2>
+   <p class="note" style="margin-top:0">Se imprime en A4 vertical, sin márgenes extra y ajustado para que cada hoja entre en una sola página. En la ventana de impresión dejá "Márgenes: predeterminado" y "Escala: predeterminada".</p>
+   ${pages.map(p=>`<div class="note" style="margin:10px 0 4px"><b>Hoja ${p.n}</b></div>`+p.blocks.map(b=>`<div class="rendwrap">${rendBlock(b.alias,D,b.rows)}</div>`).join('')).join('')}</div>`;
+  return h;
+}
 
 /* ====================== RESUMEN ====================== */
 function vResumen(){
@@ -484,7 +578,7 @@ function vMetas(){
    <div class="row" style="margin-top:12px"><label>Recaudación manual (opcional)${money('mrec',m.recManual)}</label><label>Mes anterior manual (opcional)${money('mprev',m.prevManual)}</label><span class="note">Dejalos vacíos para usar lo que se cargó en Ventas.</span></div></div>`;
   // cobradores
   h+=`<div class="card"><h2>Comisión RK por cobrador<span class="sp"></span><span class="note">Tasa base ${pf(ag.rk.base)}% · sube según la meta individual (meta de agencia × participación)</span></h2><div class="tw"><table><thead><tr><th>Cobrador</th><th>Partic.</th><th>Recaudación Quiniela</th>${ag.rk.tiers.map(t=>`<th>Meta ${pf(t.pct)}%</th>`).join('')}<th>Tasa</th><th>Comisión RK</th><th></th></tr></thead><tbody>`;
-  for(const c of M.cobs){h+=`<tr><td>${esc(c.name)}${c.det.length&&!c.manual?` <span class="badge">${c.det.length} corr.</span>`:''}</td><td>${pf(c.share)}%</td><td>${money('mcr',c.manual?c.rec:0,`data-n="${esc(c.name)}" placeholder="${c.detSum?fmt(c.detSum):'0'}"`)}</td>${c.tiers.map((t,i)=>`<td class="${c.lvl>i?'pos':''}">${fmt(t.meta)}${c.lvl>i?' ✓':''}</td>`).join('')}<td><b>${pf(c.pct)}%</b></td><td><b>${fmt(c.com)}</b>${c.next?`<div class="note">falta ${fmt(c.falta)} p/ ${pf(c.next.pct)}%</div>`:''}</td><td><button class="btn sm ghost" data-a="mpaste" data-n="${esc(c.name)}">Pegar detalle</button></td></tr>`;
+  for(const c of M.cobs){h+=`<tr><td>${esc(c.name)}${c.src==='detalle'?` <span class="badge">${c.det.length} corr.</span>`:c.src==='cobros'?` <span class="badge ok">de Cobros · ${c.cobDays} días</span>`:''}</td><td>${pf(c.share)}%</td><td>${money('mcr',c.manual?c.rec:0,`data-n="${esc(c.name)}" placeholder="${c.detSum?fmt(c.detSum):'0'}"`)}</td>${c.tiers.map((t,i)=>`<td class="${c.lvl>i?'pos':''}">${fmt(t.meta)}${c.lvl>i?' ✓':''}</td>`).join('')}<td><b>${pf(c.pct)}%</b></td><td><b>${fmt(c.com)}</b>${c.next?`<div class="note">falta ${fmt(c.falta)} p/ ${pf(c.next.pct)}%</div>`:''}</td><td><button class="btn sm ghost" data-a="mpaste" data-n="${esc(c.name)}">Pegar detalle</button></td></tr>`;
     if(S.metaPaste===c.name)h+=`<tr><td colspan="${6+ag.rk.tiers.length}" class="tl"><div class="note">Pegá las filas de corredores de este cobrador (N°, Bruto, B. Quiniela, … , Neto). Se suma la columna B. Quiniela.</div><textarea id="mpastetxt"></textarea><div class="row" style="margin-top:6px"><button class="btn sm" data-a="mpsave" data-n="${esc(c.name)}">Procesar</button>${c.det.length?`<button class="btn sm danger" data-a="mpclr" data-n="${esc(c.name)}">Quitar detalle</button>`:''}<button class="btn sm ghost" data-a="mpcancel">Cerrar</button></div>${c.det.length?`<div class="tw" style="max-height:260px;overflow:auto;margin-top:8px"><table><thead><tr><th>Corredor</th><th>Bruto</th><th>B. Quiniela</th><th>Neto</th></tr></thead><tbody>${c.det.map(x=>`<tr><td>${esc(x.n)}</td><td>${fmt(x.bruto)}</td><td>${fmt(x.quin)}</td><td>${fmt(x.neto)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td>${fmt(c.det.reduce((s,x)=>s+x.bruto,0))}</td><td>${fmt(c.detSum)}</td><td>${fmt(c.det.reduce((s,x)=>s+x.neto,0))}</td></tr></tfoot></table></div>`:''}</td></tr>`;
   }
   const sa=M.rec-M.sumRec;
@@ -509,7 +603,7 @@ function vMetas(){
 /* ====================== AJUSTES ====================== */
 function vAjustes(){
   const ag=AG();
-  const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'||cls==='tel'?'inputmode="numeric"':''} ${cls==='tel'?'placeholder="0981 123 456" style="width:130px"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">✕</button></td></tr>`).join('');
+  const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'||cls==='tel'?'inputmode="numeric"':''} ${cls==='tel'?'placeholder="0981 123 456" style="width:130px"':cls==='alias'?'style="width:90px"':cls==='hoja'?'inputmode="numeric" style="width:55px;text-align:center"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">✕</button></td></tr>`).join('');
   let h=`<div class="sectitle">Ajustes de ${esc(ag.name)}</div><div class="grid2"><div class="card"><h2>Agencia</h2><div class="row"><label style="flex:1">Nombre<input data-c="agname" value="${esc(ag.name)}"></label></div></div>
   <div class="card"><h2>Respaldo en archivo</h2><div class="row"><button class="btn" data-a="bkexp">Descargar backup</button><button class="btn ghost" data-a="bkimp">Restaurar / importar archivo</button>${navigator.canShare?`<button class="btn ghost" data-a="bkshare">Compartir…</button>`:''}</div><p class="note">El backup incluye las dos agencias. También podés importar archivos de datos (por ejemplo, el de octubre) que se suman a lo que ya tenés.</p></div></div>
   <div class="grid2"><div class="card"><h2>Copias en este equipo<span class="sp"></span><button class="btn sm ghost" data-a="snapnow">Crear copia ahora</button></h2><div id="snaplist" class="note">Cargando…</div><p class="note">Se guardan solas las <b>últimas 3 copias</b> en esta PC o celular: una automática por día al abrir la app, y otra antes de cada restauración.</p></div>
@@ -518,8 +612,10 @@ function vAjustes(){
    <div id="gdlistbox">${S.gdList?gdListHtml():''}</div>`:'<p class="note">Para usar Drive hace falta cargar una sola vez tu <b>ID de cliente de Google</b> (los pasos están en las instrucciones que te pasé).</p>'}
    <details style="margin-top:8px"${DB.settings.gClientId?'':' open'}><summary class="note" style="cursor:pointer">ID de cliente de Google</summary><div class="row" style="margin-top:6px"><input id="gcid" style="flex:1" value="${esc(DB.settings.gClientId||'')}" placeholder="xxxxxxxx.apps.googleusercontent.com"><button class="btn sm" data-a="gcidsave">Guardar</button></div></details></div></div>
   <div class="grid2"><div class="card"><h2>Productos y % de comisión de agencia</h2><div class="tw"><table><thead><tr><th>Producto</th><th class="tl">% agencia</th><th></th></tr></thead><tbody>${rowsList(ag.products,'lprod',[['name',''],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lprod" style="margin-top:8px">+ Producto</button><p class="note">El nombre debe coincidir con el de TDPbiz para que el pegado lo reconozca. Los productos nuevos que aparezcan al pegar se agregan solos.</p></div>
-  <div class="card"><h2>Cobradores y participación</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th class="tl">Participación %</th><th class="tl">WhatsApp</th><th></th></tr></thead><tbody>${rowsList(ag.cobradores,'lcob',[['name',''],['share','pct'],['tel','tel']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lcob" style="margin-top:8px">+ Cobrador</button>
-  <p class="note">Suma actual: ${pf(ag.cobradores.reduce((s,c)=>s+(+c.share||0),0))}%</p>
+  <div class="card"><h2>Cobradores y participación</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th class="tl">Participación %</th><th class="tl">WhatsApp</th><th class="tl">Nombre en hoja</th><th class="tl">Hoja N°</th><th></th></tr></thead><tbody>${rowsList(ag.cobradores.map(c=>({...c,alias:aliasOf(ag,c),hoja:hojaOf(ag,c)})),'lcob',[['name',''],['share','pct'],['tel','tel'],['alias','alias'],['hoja','hoja']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lcob" style="margin-top:8px">+ Cobrador</button>
+  <p class="note">Suma actual: ${pf(ag.cobradores.reduce((s,c)=>s+(+c.share||0),0))}%. "Hoja N°" define qué cobradores se imprimen juntos en la misma hoja A4 de Cobros.</p>
+  <h3>Corredores de cada cobrador</h3>${ag.cobradores.map(c=>{const l=Object.keys(ag.mapeo||{}).filter(k=>ag.mapeo[k]===c.name).sort((a,b)=>a-b);return`<label class="note" style="display:block;margin-top:6px"><b>${esc(c.name)}</b> · ${l.length} corredores<textarea data-c="mapc" data-n="${esc(c.name)}" style="min-height:44px">${l.join(', ')}</textarea></label>`}).join('')}
+  <p class="note">Escribí los N° separados por coma. Si un número está en dos cobradores, queda en el último que guardaste.</p>
   <h3>Categorías de gastos</h3><div class="chips">${ag.gastoCats.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="gastoCats" data-i="${i}">✕</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newcat" placeholder="Nueva categoría"><button class="btn sm ghost" data-a="chadd" data-l="gastoCats" data-in="newcat">Agregar</button></div>
   <h3>Motivos de deuda</h3><div class="chips">${ag.motivos.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="motivos" data-i="${i}">✕</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newmot" placeholder="Nuevo motivo"><button class="btn sm ghost" data-a="chadd" data-l="motivos" data-in="newmot">Agregar</button></div></div></div>
   <div class="grid2"><div class="card"><h2>Comisión RK de cobradores</h2><div class="row"><label>Tasa base %<input class="pct" data-c="rkbase" value="${pf(ag.rk.base,3)}"></label></div><h3>Escalones (meta de agencia → tasa)</h3><div class="tw"><table><thead><tr><th>Meta agencia desde</th><th class="tl">Tasa %</th><th></th></tr></thead><tbody>${rowsList(ag.rk.tiers,'ltier',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="ltier" style="margin-top:8px">+ Escalón</button><p class="note">La meta individual de cada cobrador = meta de agencia × su participación.</p></div>
@@ -575,6 +671,12 @@ const ACT={
   mprint:()=>window.print(),
   cdel:()=>{if(confirm('¿Borrar el cierre de este día?')){delete AG().cierres[S.date];save();render()}},
   dtipo:b=>{S.dTipo=b.dataset.k;render()},
+  cobayer:()=>{S.date=addDays(iso(new Date()),-1);render()},
+  cobparse:()=>{const P=parseCobros($('#cobpaste').value);if(!P.rows.length){alert('No se reconocieron filas de cobros.\n\nCopiá la planilla desde el encabezado (№, Bruto, B. Quiniela…) hasta la última fila.');return}S.cobPrev=P;render()},
+  cobcancel:()=>{S.cobPrev=null;render()},
+  cobsave:()=>{const ag=AG(),D=S.date;if(ag.cobros[D]&&!confirm(`Ya hay cobros cargados el ${dmy(D)}. ¿Reemplazarlos?`))return;ag.cobros[D]={rows:S.cobPrev.rows,total:S.cobPrev.total||null};S.cobPrev=null;save();toast('Cobros guardados');render()},
+  cobdel:()=>{if(confirm('¿Borrar los cobros de este día?')){delete AG().cobros[S.date];save();render()}},
+  cobprint:b=>printCobros(b.dataset.k?+b.dataset.k:0),
   dcobf:b=>{S.dCobF=b.dataset.k;render()},
   dwa:()=>{const ag=AG(),cf=S.dCobF;const cob=ag.cobradores.find(c=>c.name===cf)||{};
     const ab=deudaSaldos(ag).filter(o=>o.cobrador===cf&&o.saldo>0).sort((a,b)=>(+a.corredor||0)-(+b.corredor||0));
@@ -626,18 +728,23 @@ const CHG={
   mrec:t=>{const m=ensureM(AG(),monthOf(S.date));m.recManual=pnum(t.value);save();render()},
   mprev:t=>{const m=ensureM(AG(),monthOf(S.date));m.prevManual=pnum(t.value);save();render()},
   mcr:t=>{const m=ensureM(AG(),monthOf(S.date));m.cobr=m.cobr||{};const cm=m.cobr[t.dataset.n]=m.cobr[t.dataset.n]||{};cm.rec=pnum(t.value);save();render()},
+  mapc:t=>{const ag=AG();ag.mapeo=ag.mapeo||{};const n=t.dataset.n;for(const k of Object.keys(ag.mapeo))if(ag.mapeo[k]===n)delete ag.mapeo[k];
+    String(t.value).split(/[^\d]+/).filter(Boolean).forEach(k=>ag.mapeo[String(+k)]=n);save();toast('Corredores actualizados');render()},
+  cobmap:t=>{const ag=AG();if(!t.value)return;ag.mapeo[t.dataset.k]=t.value;save();toast(`Corredor ${t.dataset.k} asignado`);render()},
   agname:t=>{AG().name=t.value.trim()||AG().name;save();render()},
   rkbase:t=>{AG().rk.base=ppct(t.value);save();render()},
   capct:t=>{AG().comAgPct=ppct(t.value);save();render()},
   sgpct:t=>{AG().sueldosPct=ppct(t.value);save();render()},
 };
-for(const k of['psave','vdel','gadd','gdel','gedit','cladd','cldel','pnccopy','cdel','dadd','dsaldar','ddel']){const f=ACT[k];ACT[k]=(...a)=>{if(!guard())f(...a)}}
+for(const k of['cobsave','cobdel','psave','vdel','gadd','gdel','gedit','cladd','cldel','pnccopy','cdel','dadd','dsaldar','ddel']){const f=ACT[k];ACT[k]=(...a)=>{if(!guard())f(...a)}}
 for(const k of['vb','vc','vs','cf','cq','cl']){const f=CHG[k];CHG[k]=(...a)=>{if(!guard())f(...a)}}
 for(const l of Object.keys(LISTS))CHG[l]=t=>{const ag=AG();const arr=LISTS[l](ag);const x=arr[+t.dataset.i];const f=t.dataset.f;
   if(f==='name'){const old=x.name,nw=t.value.trim();if(!nw)return render();x.name=nw;
-    if(l==='lcob'){for(const ym in ag.metas){const c=ag.metas[ym].cobr;if(c&&c[old]){c[nw]=c[old];delete c[old]}}ag.deudas.forEach(d=>{if(d.cobrador===old)d.cobrador=nw});if(S.dCobF===old)S.dCobF=nw}
+    if(l==='lcob'){for(const ym in ag.metas){const c=ag.metas[ym].cobr;if(c&&c[old]){c[nw]=c[old];delete c[old]}}ag.deudas.forEach(d=>{if(d.cobrador===old)d.cobrador=nw});if(S.dCobF===old)S.dCobF=nw;for(const k in ag.mapeo)if(ag.mapeo[k]===old)ag.mapeo[k]=nw}
     if(l==='lprod'){for(const d in ag.ventas){const it=ag.ventas[d].items;if(it&&it[old]&&!it[nw]){it[nw]=it[old];delete it[old]}}}}
   else if(f==='tel')x.tel=t.value.trim();
+  else if(f==='alias')x.alias=t.value.trim().toUpperCase();
+  else if(f==='hoja')x.hoja=Math.max(1,parseInt(t.value)||1);
   else if(f==='meta')x.meta=pnum(t.value);else x[f]=ppct(t.value);save();render()};
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const f=ACT[b.dataset.a];if(f){e.preventDefault();f(b,e)}});
@@ -655,7 +762,7 @@ async function applyImport(j,origen='el backup'){
       await snapshot('Antes de restaurar');const keep={gClientId:DB.settings.gClientId,lastDrive:DB.settings.lastDrive};DB=j.data;load2();Object.assign(DB.settings,keep);toast('Respaldo restaurado')}
     else if(j.merge){const ag=DB.agencies[j.agency];if(!ag)throw new Error('Agencia desconocida');
       (j.products||[]).forEach(p=>{if(!ag.products.some(x=>norm(x.name)===norm(p.name)))ag.products.push(p)});
-      Object.assign(ag.ventas,j.ventas||{});for(const ym in j.metas||{}){ag.metas[ym]=Object.assign(ag.metas[ym]||{},j.metas[ym])}
+      Object.assign(ag.ventas,j.ventas||{});Object.assign(ag.cobros,j.cobros||{});for(const ym in j.metas||{}){ag.metas[ym]=Object.assign(ag.metas[ym]||{},j.metas[ym])}
       toast(`Datos importados en ${ag.name}`)}
     save();render()}
 /* ---- copias locales (IndexedDB, últimas 3) ---- */
