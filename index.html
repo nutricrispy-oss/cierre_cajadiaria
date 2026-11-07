@@ -109,7 +109,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>ventas · gastos · cierre</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.10</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -269,6 +269,24 @@ function quinMonth(ag,ym,upto){
   for(const d in ag.ventas){if(!d.startsWith(ym)||(upto&&d>upto))continue;const q=qOf(ag.ventas[d]);
     if(q&&q.bruto){s+=q.bruto;days++;tk+=q.cant||0;pr+=q.prem||0;cp+=q.cprem||0;if(d>last)last=d}}
   return{s,days,tk,pr,cp,last};
+}
+function cobVsVentas(ag,ym){
+  const qv=d=>{const q=qOf(ag.ventas[d]);return q?q.bruto||0:0};const used=new Set();const rows=[];
+  for(const d of Object.keys(ag.cobros||{}).filter(d=>d.startsWith(ym)).sort()){
+    const span=fromIso(d).getDay()===0?[addDays(d,-1),d]:[d];span.forEach(x=>used.add(x));
+    rows.push({d,span,v:span.reduce((s,x)=>s+qv(x),0),c:sumK(ag.cobros[d].rows,'quin')})}
+  for(const d of Object.keys(ag.ventas).filter(d=>d.startsWith(ym)&&!used.has(d)&&qv(d)))rows.push({d,span:[d],v:qv(d),c:0,noCob:true});
+  rows.sort((a,b)=>a.d.localeCompare(b.d));rows.forEach(r=>{r.dif=r.v-r.c;if(!r.noCob&&!r.v)r.noVen=true});
+  const vDays=Object.keys(ag.ventas).filter(d=>d.startsWith(ym)&&qv(d)).length,cDays=Object.keys(ag.cobros||{}).filter(d=>d.startsWith(ym)).length;
+  return{rows,vDays,cDays};
+}
+function cmpHtml(ag,ym,M,sa){
+  const C=cobVsVentas(ag,ym);const bad=C.rows.filter(r=>r.dif!==0);
+  const src=M.m.recManual?'la recaudación manual':`Ventas (${C.vDays} días con Quiniela)`;
+  if(!bad.length&&!sa)return`<div class="alert ok" style="margin-top:8px">✓ Cobros (${C.cDays} planillas) coincide con ${src}.</div>`;
+  let h=`<div class="alert" style="margin-top:8px"><b>Cobros no coincide con Ventas: diferencia ${gs(sa)}.</b> Ventas suma ${gs(M.rec)} (${C.vDays} días con Quiniela) y los cobradores suman ${gs(M.sumRec)} (${C.cDays} planillas de Cobros).${bad.length?' Estos son los días que no coinciden:':''}</div>`;
+  if(bad.length)h+=`<div class="tw"><table><thead><tr><th>Fecha de la planilla</th><th>Quiniela en Ventas</th><th>B. Quiniela en Cobros</th><th>Diferencia</th><th class="tl">Qué pasa</th></tr></thead><tbody>${bad.map(r=>`<tr class="click" data-a="goto" data-d="${r.d}"><td>${dowOf(r.d).slice(0,3)} ${dmy(r.d)}${r.span.length>1?`<div class="note">ventas de sáb. ${dm(r.span[0])} + dom. ${dm(r.d)}</div>`:''}</td><td>${fmt(r.v)}</td><td>${fmt(r.c)}</td><td class="${r.dif>0?'neg':'pos'}"><b>${fmt(r.dif)}</b></td><td class="tl">${r.noCob?'<span class="badge warn">Falta cargar Cobros</span>':r.noVen?'<span class="badge warn">Falta cargar Ventas</span>':r.span.length>1&&!monthOf(r.span[0]).startsWith(ym)?'<span class="badge">Incluye el sábado del mes anterior</span>':'<span class="badge bad">Montos distintos</span>'}</td></tr>`).join('')}</tbody></table></div><p class="note">Tocá una fila para ir a ese día. Las planillas del domingo se comparan con las ventas del sábado y del domingo juntas.</p>`;
+  return h;
 }
 function metasCalc(ag,ym){
   const m=ag.metas[ym]||{};const qd=quinMonth(ag,ym);
@@ -585,7 +603,7 @@ function vMetas(){
     if(S.metaPaste===c.name)h+=`<tr><td colspan="${6+ag.rk.tiers.length}" class="tl"><div class="note">Pegá las filas de corredores de este cobrador (N°, Bruto, B. Quiniela, … , Neto). Se suma la columna B. Quiniela.</div><textarea id="mpastetxt"></textarea><div class="row" style="margin-top:6px"><button class="btn sm" data-a="mpsave" data-n="${esc(c.name)}">Procesar</button>${c.det.length?`<button class="btn sm danger" data-a="mpclr" data-n="${esc(c.name)}">Quitar detalle</button>`:''}<button class="btn sm ghost" data-a="mpcancel">Cerrar</button></div>${c.det.length?`<div class="tw" style="max-height:260px;overflow:auto;margin-top:8px"><table><thead><tr><th>Corredor</th><th>Bruto</th><th>B. Quiniela</th><th>Neto</th></tr></thead><tbody>${c.det.map(x=>`<tr><td>${esc(x.n)}</td><td>${fmt(x.bruto)}</td><td>${fmt(x.quin)}</td><td>${fmt(x.neto)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td>${fmt(c.det.reduce((s,x)=>s+x.bruto,0))}</td><td>${fmt(c.detSum)}</td><td>${fmt(c.det.reduce((s,x)=>s+x.neto,0))}</td></tr></tfoot></table></div>`:''}</td></tr>`;
   }
   const sa=M.rec-M.sumRec;
-  h+=`</tbody><tfoot><tr><td>Total</td><td></td><td>${fmt(M.sumRec)}</td>${ag.rk.tiers.map(()=>'<td></td>').join('')}<td></td><td>${fmt(M.totalRK)}</td><td></td></tr></tfoot></table></div>${M.sumRec&&Math.abs(sa)>0?`<div class="alert" style="margin-top:8px">La suma de los cobradores (${fmt(M.sumRec)}) difiere de la recaudación de la agencia (${fmt(M.rec)}) en ${fmt(sa)}.</div>`:M.sumRec?`<div class="alert ok" style="margin-top:8px">✓ La suma de cobradores coincide con la recaudación de la agencia.</div>`:''}</div>`;
+  h+=`</tbody><tfoot><tr><td>Total</td><td></td><td>${fmt(M.sumRec)}</td>${ag.rk.tiers.map(()=>'<td></td>').join('')}<td></td><td>${fmt(M.totalRK)}</td><td></td></tr></tfoot></table></div>${M.sumRec?cmpHtml(ag,ym,M,sa):''}</div>`;
   // distribución
   h+=`<div class="grid2"><div class="card"><h2>Distribución de lo generado</h2><div class="lines">
    <div class="ln"><span class="k">Comisión agencia Quiniela (${pf(ag.comAgPct)}%)</span><b>${gs(M.comAg)}</b></div>
