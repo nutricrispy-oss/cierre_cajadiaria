@@ -358,13 +358,14 @@ function cobRow(cells,m){const g=k=>m[k]>=0&&cells[m[k]]!==undefined?pnum(cells[
 function parseCobros(text){
   const lines=String(text).replace(/\r/g,'').replace(/\u00a0/g,' ').split('\n');
   let hdr=null,rows=[],total=null,raw=[];
-  if(lines.some(l=>l.split('\t').length>=5)){
+  const nb=lines.filter(l=>l.trim());const rowMode=nb.length&&nb.filter(l=>l.split('\t').length>=5).length>=nb.length*0.6;
+  if(rowMode){
     for(const l of lines){const c=l.split('\t').map(x=>x.trim());if(c.length<5)continue;
       if(!isNumCell(c[0])&&c.some(x=>/quiniela|neto/i.test(x))&&!/^total$/i.test(c[0])){hdr=c;continue}
       if(/^total$/i.test(c[0])){total=c;continue}
       if(c[0]!==''&&c[0]!=='-'&&isNumCell(c[0]))raw.push(c)}
   }else{
-    const cells=lines.map(x=>x.trim()).filter(Boolean);let i=0;const pre=[];
+    const cells=lines.join('\n').split(/[\t\n]/).map(x=>x.trim()).filter(Boolean);let i=0;const pre=[];
     while(i<cells.length&&!isNumCell(cells[i])){pre.push(cells[i]);i++}
     const k=pre.findIndex(h=>COB_KEYS.n.includes(hk(h)));hdr=k>=0?pre.slice(k):pre.length>=5?pre:null;const N=(hdr||COB_DEF).length;
     while(i<cells.length){if(!isNumCell(cells[i])){if(/^total$/i.test(cells[i]))total=[cells[i],...cells.slice(i+1,i+N)];i+=/^total$/i.test(cells[i])?N:1;continue}
