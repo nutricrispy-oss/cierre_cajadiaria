@@ -124,7 +124,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.13</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.14</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -234,7 +234,7 @@ function cierreCalc(ag,D){
   const comMes=monthTotals(ag,ym,D).com,gastosMes=sumGastos(ag,ym+'-01',D),deu=deudaTotal(ag,D),aq=arqueo(c);
   const oi=sumL(c.otrosIng),oe=sumL(c.otrosEgr);
   const saldoPrev=saldoPrevOf(ag,ym);
-  const pa=hasPrem(ag,ym)?pncCalc(ag,ym,D,true).saldo:null,pp=hasPrem(ag,prevYm(ym))?pncCalc(ag,prevYm(ym),D,true).saldo:null;
+  const pa=hasPrem(ag,ym)?pncCalc(ag,ym,D,false).saldo:null,pp=hasPrem(ag,prevYm(ym))?pncCalc(ag,prevYm(ym),D,false).saldo:null;
   const pncAct=pa!==null?pa:(c.pncAct||0),pncAnt=pp!==null?pp:(c.pncAnt||0);
   const ing=saldoPrev+pncAct+pncAnt+comMes+oi;
   const egr=gastosMes+(c.premios||0)+deu+oe+aq.t;
