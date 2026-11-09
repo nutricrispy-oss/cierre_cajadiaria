@@ -143,7 +143,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.20</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.21</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -785,7 +785,7 @@ function vCierreDia(){
     <div class="ln tot"><span>Total egresos</span><span>${gs(cc.egr)}</span></div></div></div>`;
   h+=`<div class="card"><h2>Arqueo de efectivo</h2><div class="tw"><table><thead><tr><th>Billete</th><th>Cantidad</th><th>Monto</th></tr></thead><tbody>${BILL.map(d=>`<tr><td>${fmt(d)}</td><td><input class="num" inputmode="numeric" data-c="cq" data-k="b${d}" value="${c['b'+d]||''}" placeholder="0"></td><td>${fmt((c['b'+d]||0)*d)}</td></tr>`).join('')}<tr><td colspan="2"><b>Total billetes</b></td><td><b>${fmt(cc.aq.b)}</b></td></tr>${MON.map(d=>`<tr><td>Moneda ${fmt(d)}</td><td><input class="num" inputmode="numeric" data-c="cq" data-k="m${d}" value="${c['m'+d]||''}" placeholder="0"></td><td>${fmt((c['m'+d]||0)*d)}</td></tr>`).join('')}<tr><td colspan="2">Monedas (monto directo)</td><td>${money('cf',c.monedasMonto,'data-k="monedasMonto"')}</td></tr></tbody><tfoot><tr><td colspan="2">Total efectivo</td><td>${fmt(cc.aq.t)}</td></tr></tfoot></table></div></div></div>`;
   h+=`<div class="card"><h2>Resultado del ${dmy(D)}</h2><div class="dif ${cc.dif>=0?'pos':'neg'}">${cc.dif>=0?'Diferencia a favor':'Déficit'}: ${gs(Math.abs(cc.dif))}</div>
-   <div class="row" style="margin-top:10px"><label style="flex:1">Nota del día<input data-c="cf" data-k="nota" data-t="txt" data-keep value="${esc(c.nota||'')}" placeholder="Observaciones"></label>${cc.frozen?`<button class="btn ghost" data-a="cunfreeze" data-keep style="align-self:flex-end">Reabrir día</button>`:`<button class="btn" data-a="cfreeze" style="align-self:flex-end">🔒 Cerrar el día</button>`}<button class="btn ghost" data-a="cprint" data-keep style="align-self:flex-end">🖨 Imprimir cierre</button>${cc.exists&&!cc.frozen?`<button class="btn sm danger" data-a="cdel" style="align-self:flex-end">Borrar cierre del día</button>`:''}</div></div>`;
+   <div class="row" style="margin-top:10px"><label style="flex:1">Nota del día<input data-c="cf" data-k="nota" data-t="txt" data-keep value="${esc(c.nota||'')}" placeholder="Observaciones"></label>${cc.frozen?`<button class="btn ghost" data-a="cunfreeze" data-keep style="align-self:flex-end">Reabrir día</button>`:`<button class="btn" data-a="cfreeze" style="align-self:flex-end">🔒 Cerrar el día</button>`}<button class="btn ghost" data-a="cprint" data-keep style="align-self:flex-end">🖨 Imprimir cierre</button>${cc.exists&&!cc.frozen?`<button class="btn sm ghost" data-a="cmove" style="align-self:flex-end">Pasar este cierre a otra fecha</button><button class="btn sm danger" data-a="cdel" style="align-self:flex-end">Borrar cierre del día</button>`:''}</div></div>`;
   // tabla mensual
   const dates=Object.keys(ag.cierres).filter(d=>d.startsWith(ym)).sort();
   h+=`<div class="card"><h2>Cierres de ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ingresos</th><th>Egresos</th><th>Premios</th><th>Efectivo</th><th>Diferencia</th><th class="tl">Nota</th></tr></thead><tbody>${dates.map(d=>{const x=cierreCalc(ag,d);return`<tr class="click ${d===D?'sel':''}" data-a="goto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(x.ing)}</td><td>${fmt(x.egr)}</td><td>${fmt(x.c.premios||0)}</td><td>${fmt(x.aq.t)}</td><td class="${x.dif>=0?'pos':'neg'}"><b>${fmt(x.dif)}</b></td><td class="tl mut">${esc(x.c.nota||'')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin cierres este mes</td></tr>'}</tbody></table></div></div>`;
@@ -930,6 +930,10 @@ const ACT={
   dsecren:b=>{const id=+b.dataset.i;const cur=DEP_SEC().find(x=>x.id===id);const n=prompt('Nombre de esta columna de conteo',cur?cur.n:'');if(n&&n.trim()){const o={};DEP_SEC().forEach(x=>o[x.id]=x.n);o[id]=n.trim();DB.settings.depSec=o;save();render()}},
   dprint:()=>printPages([depPrintHtml(S.date)]),
   cprint:()=>printPages([cierrePrintHtml(AG(),S.date)]),
+  cmove:()=>{const ag=AG(),D=S.date;const c=ag.cierres[D];if(!c||c.snap)return;const f=prompt('¿A qué fecha pasás este cierre? (dd/mm/aaaa)\nSe mueven el arqueo, los premios pagados, otros ingresos/valores y la nota.',dmy(addDays(D,1)));if(f===null)return;
+    const nf=parseDmy(f);if(!nf||nf===D){alert('Fecha inválida');return}if(isClosed(ag,monthOf(nf))){alert('Ese mes está cerrado');return}
+    if(ag.cierres[nf]){if(ag.cierres[nf].snap){alert(`El ${dmy(nf)} ya está cerrado. Reabrilo primero.`);return}if(!confirm(`El ${dmy(nf)} ya tiene datos de cierre. ¿Reemplazarlos con los del ${dmy(D)}?`))return}
+    ag.cierres[nf]=c;delete ag.cierres[D];S.date=nf;save();toast(`Cierre pasado al ${dmy(nf)}`);render()},
   cfreeze:()=>{const ag=AG(),D=S.date;const c=ensureC(ag,D);c.snap=snapOf(ag,D);save();toast('Día cerrado: los números quedan fijos');render()},
   cunfreeze:()=>{const ag=AG(),D=S.date;const c=ag.cierres[D];if(!c||!c.snap)return;if(!confirm('¿Reabrir el día? Los números se van a recalcular con los datos actuales (premios, deudas, gastos y ventas).'))return;delete c.snap;save();render()},
   cdel:()=>{if(confirm('¿Borrar el cierre de este día?')){delete AG().cierres[S.date];save();render()}},
