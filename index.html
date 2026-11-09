@@ -102,6 +102,10 @@ table.xl tr.pd td{color:var(--muted)}table.xl tr.pd td b{color:var(--muted)}
 .pbtn:hover{border-color:var(--pri)}
 .pbtn.on{background:var(--okbg);color:var(--ok);border-color:transparent}
 #printArea{display:none}
+.depg{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media(max-width:1650px){.depg{grid-template-columns:minmax(0,1fr)}}
+.depg input.num{width:50px!important}
+.depcard input.money{width:105px}.depcard td{padding:5px 5px}
 .pdoc{font:10pt Arial,Helvetica,sans-serif;color:#000}
 .pdoc .ph{display:flex;justify-content:space-between;border-bottom:2pt solid #000;padding-bottom:6pt;margin-bottom:8pt}
 .pdoc .pt{font-size:14pt;font-weight:bold}
@@ -139,7 +143,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.16</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.18</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -215,6 +219,7 @@ function load(){
   try{DB=JSON.parse(localStorage.getItem(KEY))}catch(e){DB=null}
   if(!DB||!DB.agencies)DB={version:1,settings:{agency:'17',theme:''},agencies:{}};
   for(const k of['17','26']){DB.agencies[k]=Object.assign(defAgency(k),DB.agencies[k]||{});const a=DB.agencies[k];if(!a.gastoCats.includes(PCAT))a.gastoCats.splice(Math.max(a.gastoCats.length-1,0),0,PCAT);a.premios=a.premios||{};a.pncDep=a.pncDep||{}}
+  DB.depositos=DB.depositos||{};
   if(!DB.settings.theme)DB.settings.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){toast('No se pudo guardar: '+e.message)}}
@@ -245,7 +250,7 @@ const deudaTotal=(ag,upto)=>deudaSaldos(ag,upto).reduce((s,o)=>s+Math.max(o.sald
 function arqueo(c){let b=0,m=0;for(const d of BILL)b+=(c['b'+d]||0)*d;for(const d of MON)m+=(c['m'+d]||0)*d;m+=c.monedasMonto||0;return{b,m,t:b+m}}
 const sumL=a=>(a||[]).reduce((s,x)=>s+(x.monto||0),0);
 function cierreCalc(ag,D){const c=ag.cierres[D];if(c&&c.snap){const z=c.snap;return Object.assign({},z,{c,exists:true,frozen:true,pncAutoA:true,pncAutoP:true,aq:z.aq||{b:0,m:0,t:0}})}return cierreLive(ag,D)}
-function snapOf(ag,D){const L=cierreLive(ag,D);return{fecha:new Date().toISOString(),pncAct:L.pncAct,pncAnt:L.pncAnt,saldoPrev:L.saldoPrev,comMes:L.comMes,gastosMes:L.gastosMes,deu:L.deu,aq:L.aq,oi:L.oi,oe:L.oe,premios:L.c.premios||0,ing:L.ing,egr:L.egr,dif:L.dif}}
+function snapOf(ag,D){const L=cierreLive(ag,D);return{fecha:new Date().toISOString(),pncAct:L.pncAct,pncAnt:L.pncAnt,saldoPrev:L.saldoPrev,comMes:L.comMes,gastosMes:L.gastosMes,deu:L.deu,ger:L.ger,aq:L.aq,oi:L.oi,oe:L.oe,premios:L.c.premios||0,ing:L.ing,egr:L.egr,dif:L.dif}}
 function resnap(z){z.ing=z.saldoPrev+z.pncAct+z.pncAnt+z.comMes+z.oi;z.dif=z.ing-z.egr}
 function cierreLive(ag,D){
   const c=ag.cierres[D]||{};const ym=monthOf(D);
@@ -255,8 +260,9 @@ function cierreLive(ag,D){
   const pa=hasPrem(ag,ym)?pncCalc(ag,ym,D,false).saldo:null,pp=hasPrem(ag,prevYm(ym))?pncCalc(ag,prevYm(ym),D,false).saldo:null;
   const pncAct=pa!==null?pa:(c.pncAct||0),pncAnt=pp!==null?pp:(c.pncAnt||0);
   const ing=saldoPrev+pncAct+pncAnt+comMes+oi;
-  const egr=gastosMes+(c.premios||0)+deu+oe+aq.t;
-  return{c,exists:!!ag.cierres[D],pncAct,pncAnt,pncAutoA:pa!==null,pncAutoP:pp!==null,saldoPrev,comMes,gastosMes,deu,aq,oi,oe,ing,egr,dif:ing-egr};
+  const ger=depGer(ag.code,D);
+  const egr=gastosMes+(c.premios||0)+deu+oe+ger+aq.t;
+  return{c,exists:!!ag.cierres[D],ger,pncAct,pncAnt,pncAutoA:pa!==null,pncAutoP:pp!==null,saldoPrev,comMes,gastosMes,deu,aq,oi,oe,ing,egr,dif:ing-egr};
 }
 /* ---- cierre del mes ---- */
 const mesInfo=(ag,ym)=>(ag.meses||{})[ym]||null;
@@ -381,7 +387,7 @@ function parseCorredores(text){
 }
 
 /* ====================== render general ====================== */
-const TABS=[['resumen','Resumen'],['ventas','Ventas'],['cobros','Cobros'],['premios','Premios'],['gastos','Gastos'],['cierre','Cierre'],['deudas','Deudas'],['metas','Metas'],['ajustes','Ajustes']];
+const TABS=[['resumen','Resumen'],['ventas','Ventas'],['cobros','Cobros'],['premios','Premios'],['gastos','Gastos'],['cierre','Cierre'],['depositos','Depósitos'],['deudas','Deudas'],['metas','Metas'],['ajustes','Ajustes']];
 function sigOf(el){if(!el||!el.closest||!el.closest('#view'))return null;if(el.id)return '#'+el.id;if(!el.dataset.c)return null;const d=el.dataset;return [d.c,d.p||'',d.k||'',d.n||'',d.i||'',d.f||''].join('|')}
 function refocus(sig){if(!sig)return;let el=null;if(sig[0]==='#')el=document.getElementById(sig.slice(1));else el=[...document.querySelectorAll('#view [data-c]')].find(x=>{const d=x.dataset;return [d.c,d.p||'',d.k||'',d.n||'',d.i||'',d.f||''].join('|')===sig});if(el){el.focus();if(el.select)el.select()}}
 function render(){if(S.defer){clearTimeout(render.t);render.t=setTimeout(()=>{const sig=sigOf(document.activeElement);doRender();refocus(sig)},0);return}doRender()}
@@ -391,7 +397,7 @@ function doRender(){
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button class="${S.tab===k?'on':''}" data-a="tab" data-k="${k}">${t}</button>`).join('');
   $('#datebar').innerHTML=`<button class="btn sm ghost" data-a="dprev" title="Día anterior">◀</button><input id="dinput" class="dinput" inputmode="numeric" maxlength="10" value="${dmy(S.date)}" title="Escribí la fecha dd/mm/aaaa"><button class="btn sm ghost" data-a="dnext" title="Día siguiente">▶</button><button class="btn sm ghost" data-a="dtoday">Hoy</button><span class="dlabel">${dowOf(S.date)} · ${mesTxt(monthOf(S.date))}</span>`;
   maskDate($('#dinput'),v=>{S.date=v;render()});
-  const V={resumen:vResumen,ventas:vVentas,cobros:vCobros,premios:vPremios,gastos:vGastos,cierre:vCierre,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
+  const V={resumen:vResumen,ventas:vVentas,cobros:vCobros,premios:vPremios,gastos:vGastos,cierre:vCierre,depositos:vDepositos,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
   $('#view').innerHTML=V();
   if(S.tab==='cierre'&&S.cmode!=='mes'&&(AG().cierres[S.date]||{}).snap&&!isClosed(AG(),monthOf(S.date)))
     $('#view').querySelectorAll('input,select,textarea,button[data-a]').forEach(el=>{if(!el.closest('[data-keep]')&&!['cmode','goto'].includes(el.dataset.a))el.disabled=true});
@@ -462,7 +468,7 @@ function printPages(pagesHtml){const pa=$('#printArea');pa.innerHTML=pagesHtml.m
 function cierrePrintHtml(ag,D){const cc=cierreCalc(ag,D),c=cc.c||{};const ym=monthOf(D);const f=v=>fmt(v);
   const row=(k,v,b)=>`<tr${b?' class="t"':''}><td class="l">${k}</td><td>${f(v)}</td></tr>`;
   let ing=(cc.saldoPrev?row(`Saldo del mes anterior (${mesTxt(prevYm(ym))})`,cc.saldoPrev):'')+row(`PNC ${mesTxt(ym)}`,cc.pncAct)+row(`PNC ${mesTxt(prevYm(ym))}`,cc.pncAnt)+row(`Comisiones del mes (hasta el ${dm(D)})`,cc.comMes)+(c.otrosIng||[]).map(x=>row(esc(x.desc||'Otro ingreso'),x.monto)).join('')+row('TOTAL INGRESOS',cc.ing,1);
-  let egr=row(`Gastos del mes (hasta el ${dm(D)})`,cc.gastosMes)+row('Premios pagados del día',cc.frozen?cc.premios:(c.premios||0))+row('Deudas de corredores (saldo abierto)',cc.deu)+(c.otrosEgr||[]).map(x=>row(esc(x.desc||'Otro valor'),x.monto)).join('')+row('Efectivo en caja (arqueo)',cc.aq.t)+row('TOTAL EGRESOS',cc.egr,1);
+  let egr=row(`Gastos del mes (hasta el ${dm(D)})`,cc.gastosMes)+row('Premios pagados del día',cc.frozen?cc.premios:(c.premios||0))+(cc.ger?row('Depósito a la gerenciadora',cc.ger):'')+row('Deudas de corredores (saldo abierto)',cc.deu)+(c.otrosEgr||[]).map(x=>row(esc(x.desc||'Otro valor'),x.monto)).join('')+row('Efectivo en caja (arqueo)',cc.aq.t)+row('TOTAL EGRESOS',cc.egr,1);
   const arq=BILL.map(d=>`<tr><td class="l">Billete ${f(d)}</td><td class="c">${c['b'+d]||0}</td><td>${f((c['b'+d]||0)*d)}</td></tr>`).join('')+`<tr class="t"><td class="l">Total billetes</td><td></td><td>${f(cc.aq.b)}</td></tr>`+MON.map(d=>`<tr><td class="l">Moneda ${f(d)}</td><td class="c">${c['m'+d]||0}</td><td>${f((c['m'+d]||0)*d)}</td></tr>`).join('')+(c.monedasMonto?`<tr><td class="l">Monedas (monto)</td><td></td><td>${f(c.monedasMonto)}</td></tr>`:'')+`<tr class="t"><td class="l">TOTAL EFECTIVO</td><td></td><td>${f(cc.aq.t)}</td></tr>`;
   const G=ag.gastos.filter(g=>g.fecha>=ym+'-01'&&g.fecha<=D).sort((a,b)=>a.fecha.localeCompare(b.fecha));const gsum=sumL(G);
   const hoyP=allPrem(ag).filter(([,x])=>x.pf===D);
@@ -501,6 +507,72 @@ function vCobros(){
    ${pages.map(p=>`<div class="note" style="margin:10px 0 4px"><b>Hoja ${p.n}</b></div>`+p.blocks.map(b=>`<div class="rendwrap">${rendBlock(b.alias,D,b.rows)}</div>`).join('')).join('')}</div>`;
   return h;
 }
+
+/* ====================== DEPÓSITOS (global, ambas agencias) ====================== */
+const DEP_IDS=[0,1,2,4,3];const DEP_DEF={0:'Caja',1:'Ag. 17 Pichi',2:'Ag. 17 Osvaldo',3:'Ag. 26 CL',4:'Ag. 17 CL'};
+const DEP_SEC=()=>{const cfg=DB.settings.depSec;const nm=Array.isArray(cfg)?Object.assign({},DEP_DEF,cfg):Object.assign({},DEP_DEF,cfg||{});return DEP_IDS.map(id=>({id,n:nm[id]}))};
+const depOf=D=>DB.depositos[D]||null;
+function depEnsure(D){return DB.depositos[D]||(DB.depositos[D]={counts:[{},{},{},{},{}],ve:{},sa:{},bolt:{ag:'17'},wb:{},corpos:{},ger:[],otros:[]})}
+function depGer(code,D){const d=depOf(D);return d?(d.ger||[]).filter(x=>x.ag===code).reduce((s,x)=>s+(x.monto||0),0):0}
+function sdepAuto(code,D){const v=DB.agencies[code].ventas;const ds=Object.keys(v).filter(d=>d<D&&v[d].sDep).sort();const d=ds[ds.length-1];return d?{d,m:v[d].sDep}:null}
+const cntTot=c=>{let b=0,m=0;for(const d of BILL)b+=(c['b'+d]||0)*d;for(const d of MON)m+=(c['m'+d]||0)*d;return{b,m,t:b+m}};
+function pncDepLines(D){const out=[];for(const code of['17','26']){const ag=DB.agencies[code];for(const[ym,dp]of Object.entries(ag.pncDep||{}))if(dp.fecha===D)out.push({desc:`PNC ${mesTxt(ym)} · ${ag.name}`,monto:dp.monto||0,boleta:dp.nota||''})}return out}
+function depCalc(D){const d=depOf(D)||{counts:[{},{},{},{}],ve:{},sa:{},bolt:{},wb:{},corpos:{},ger:[],otros:[]};
+  const ag=k=>{const o=d[k==='17'?'ve':'sa']||{};const au=sdepAuto(k,D);const sd=o.sdep!=null&&o.sdep!==''?o.sdep:(au?au.m:0);return{o,au,sd,manual:o.sdep!=null&&o.sdep!=='',neto:sd-(o.transf||0)}};
+  const VE=ag('17'),SA=ag('26');const pnc=pncDepLines(D);
+  const secs=DEP_SEC().map(({id,n})=>({id,n,c:(d.counts||[])[id]||{},t:cntTot((d.counts||[])[id]||{})}));const efe=secs.reduce((s,x)=>s+x.t.t,0);
+  const total=VE.neto+SA.neto+(d.bolt.monto||0)+(d.wb.monto||0)+(d.corpos.monto||0)+sumL(d.ger)+sumL(d.otros)+sumL(pnc);
+  return{d,VE,SA,pnc,secs,efe,total,dif:total-efe}}
+function vDepositos(){
+  const D=S.date,C=depCalc(D),d=C.d,secs=C.secs;
+  let h=`<div class="sectitle">Depósitos del ${dowOf(D)} ${dmy(D)} · ambas agencias</div><div class="kpis">`+
+    kpi('Total a depositar',gs(C.total))+kpi('Efectivo contado',gs(C.efe),secs.filter(x=>x.t.t).map(x=>esc(x.n)).join(' · ')||'Sin conteo')+
+    kpi(C.dif>0?'Falta efectivo':C.dif<0?'Efectivo de más':'Diferencia',gs(Math.abs(C.dif)),C.dif===0&&C.total?'Cuadra':'',C.dif===0?'pos':C.dif>0?'neg':'')+`</div>`;
+  // conteo
+  const cell=(i,k)=>`<td><input class="num" style="width:62px" inputmode="numeric" data-c="dq" data-i="${secs[i].id}" data-k="${k}" value="${secs[i].c[k]||''}" placeholder="0"></td>`;
+  const sumCnt=k=>secs.reduce((s,x)=>s+(x.c[k]||0),0);
+  h+=`<div class="grid2 depg"><div class="card"><h2>Conteo de efectivo y monedas<span class="sp"></span><button class="btn sm danger" data-a="dclr">Poner conteo en cero</button></h2><div class="tw"><table><thead><tr><th class="tl">Denominación</th>${secs.map((x,i)=>`<th class="click" data-a="dsecren" data-i="${x.id}" title="Tocá para cambiar el nombre">${esc(x.n)}</th>`).join('')}<th>Suma total</th><th>Monto</th></tr></thead><tbody>
+   ${BILL.map(v=>`<tr><td class="tl">Billetes ${fmt(v)}</td>${secs.map((x,i)=>cell(i,'b'+v)).join('')}<td><b>${fmt(sumCnt('b'+v))}</b></td><td>${fmt(sumCnt('b'+v)*v)}</td></tr>`).join('')}
+   <tr class="tots"><td class="tl"><b>Total billetes</b></td>${secs.map(x=>`<td><b>${fmt(x.t.b)}</b></td>`).join('')}<td></td><td><b>${fmt(secs.reduce((s,x)=>s+x.t.b,0))}</b></td></tr>
+   ${MON.map(v=>`<tr><td class="tl">Monedas ${fmt(v)}</td>${secs.map((x,i)=>cell(i,'m'+v)).join('')}<td><b>${fmt(sumCnt('m'+v))}</b></td><td>${fmt(sumCnt('m'+v)*v)}</td></tr>`).join('')}
+   <tr class="tots"><td class="tl"><b>Total monedas</b></td>${secs.map(x=>`<td><b>${fmt(x.t.m)}</b></td>`).join('')}<td></td><td><b>${fmt(secs.reduce((s,x)=>s+x.t.m,0))}</b></td></tr>
+   </tbody><tfoot><tr><td class="tl">TOTAL EFECTIVO</td>${secs.map(x=>`<td>${fmt(x.t.t)}</td>`).join('')}<td></td><td>${fmt(C.efe)}</td></tr></tfoot></table></div></div>`;
+  // depósitos
+  const bol=(path,v)=>`<input data-c="dv" data-f="${path}" value="${esc(v||'')}" placeholder="N° boleta" style="width:95px">`;
+  const agRow=(key,A,name)=>`<tr><td class="tl"><b>${name}</b><div class="note">${A.manual?'S. Depositar escrito a mano':A.au?`S. Depositar del ${dowOf(A.au.d).slice(0,3)} ${dm(A.au.d)}`:'Sin ventas cargadas'}</div></td><td>${money('dv',A.sd,`data-f="${key}.sdep"`)}</td><td>${money('dv',A.o.transf,`data-f="${key}.transf"`)}</td><td><b>${fmt(A.neto)}</b></td><td>${bol(key+'.boleta',A.o.boleta)}</td><td></td></tr>`;
+  const one=(key,name,extra='')=>`<tr><td class="tl"><b>${name}</b>${extra}</td><td colspan="2"></td><td>${money('dv',d[key].monto,`data-f="${key}.monto"`)}</td><td>${bol(key+'.boleta',d[key].boleta)}</td><td></td></tr>`;
+  const lst=(l,arr,withAg)=>(arr||[]).map((x,i)=>`<tr><td class="tl">${withAg?`<select data-c="dl" data-l="${l}" data-i="${i}" data-f="ag"><option value="17" ${x.ag==='17'?'selected':''}>Ag. 17 VE</option><option value="26" ${x.ag==='26'?'selected':''}>Ag. 26 SA</option></select>`:''} <input data-c="dl" data-l="${l}" data-i="${i}" data-f="desc" value="${esc(x.desc||'')}" placeholder="${withAg?'Concepto':'Descripción'}" style="width:${withAg?110:190}px"></td><td colspan="2"></td><td><input class="money" inputmode="numeric" data-c="dl" data-l="${l}" data-i="${i}" data-f="monto" value="${x.monto?fmt(x.monto):''}" placeholder="0"></td><td><input data-c="dl" data-l="${l}" data-i="${i}" data-f="boleta" value="${esc(x.boleta||'')}" placeholder="N° boleta" style="width:95px"></td><td><button class="btn x" data-a="dldel" data-l="${l}" data-i="${i}">✕</button></td></tr>`).join('');
+  h+=`<div class="card depcard"><h2>Depósitos de hoy</h2><div class="tw"><table><thead><tr><th class="tl">Concepto</th><th>S. Depositar</th><th>− Transferencias</th><th>A depositar</th><th class="tl">Boleta</th><th></th></tr></thead><tbody>
+   ${agRow('ve',C.VE,'Villa Elisa')}${agRow('sa',C.SA,'San Antonio')}
+   ${one('bolt','Bolt',`<div class="note">se registra en Gastos de <select data-c="dv" data-f="bolt.ag"><option value="17" ${d.bolt.ag!=='26'?'selected':''}>Ag. 17</option><option value="26" ${d.bolt.ag==='26'?'selected':''}>Ag. 26</option></select></div>`)}
+   ${one('wb','Dep WB')}${one('corpos','Corpos')}
+   ${C.pnc.map(x=>`<tr><td class="tl"><b>${esc(x.desc)}</b><div class="note">desde Premios (depósito del mes anterior)</div></td><td colspan="2"></td><td><b>${fmt(x.monto)}</b></td><td class="tl">${esc(x.boleta)}</td><td></td></tr>`).join('')}
+   <tr><td class="tl" colspan="6"><b>Depósitos a la gerenciadora</b> <span class="note">(van a los egresos del cierre de esa agencia)</span> <button class="btn sm ghost" data-a="dladd" data-l="ger">+ Agregar</button></td></tr>${lst('ger',d.ger,true)}
+   <tr><td class="tl" colspan="6"><b>Otros depósitos</b> <button class="btn sm ghost" data-a="dladd" data-l="otros">+ Agregar</button></td></tr>${lst('otros',d.otros,false)}
+   </tbody><tfoot><tr><td class="tl">TOTAL DEPÓSITOS</td><td colspan="2"></td><td>${fmt(C.total)}</td><td colspan="2"></td></tr>
+   <tr><td class="tl">Efectivo contado</td><td colspan="2"></td><td>${fmt(C.efe)}</td><td colspan="2"></td></tr>
+   <tr><td class="tl">${C.dif>0?'FALTA EFECTIVO':C.dif<0?'EFECTIVO DE MÁS':'DIFERENCIA'}</td><td colspan="2"></td><td class="${C.dif===0?'pos':'neg'}">${fmt(Math.abs(C.dif))}</td><td colspan="2"></td></tr></tfoot></table></div>
+   <div class="row" style="margin-top:10px"><label style="flex:1">Nota<input data-c="dv" data-f="nota" value="${esc(d.nota||'')}" placeholder="Observaciones"></label><button class="btn" data-a="dprint" style="align-self:flex-end">🖨 Imprimir</button></div></div></div>`;
+  // historial
+  const ym=monthOf(D);const ds=Object.keys(DB.depositos).filter(x=>x.startsWith(ym)).sort();
+  h+=`<div class="card"><h2>Depósitos de ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Villa Elisa</th><th>San Antonio</th><th>Otros</th><th>Total depósitos</th><th>Efectivo contado</th><th>Diferencia</th></tr></thead><tbody>${ds.map(x=>{const c=depCalc(x);return`<tr class="click ${x===D?'sel':''}" data-a="goto" data-d="${x}"><td>${dowOf(x).slice(0,3)} ${dmy(x)}</td><td>${fmt(c.VE.neto)}</td><td>${fmt(c.SA.neto)}</td><td>${fmt(c.total-c.VE.neto-c.SA.neto)}</td><td><b>${fmt(c.total)}</b></td><td>${fmt(c.efe)}</td><td class="${c.dif===0?'pos':'neg'}">${fmt(c.dif)}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin depósitos guardados este mes</td></tr>'}</tbody></table></div></div>`;
+  return h;
+}
+function syncBolt(D){const d=depOf(D);const ref=D+'|bolt';for(const k of['17','26'])DB.agencies[k].gastos=DB.agencies[k].gastos.filter(g=>g.depRef!==ref);
+  if(d&&d.bolt&&d.bolt.monto){const code=d.bolt.ag==='26'?'26':'17';DB.agencies[code].gastos.push({id:uid(),fecha:D,cat:'Bolt',desc:'Depósito Bolt'+(d.bolt.boleta?' · boleta '+d.bolt.boleta:''),monto:d.bolt.monto,depRef:ref});
+    if(!DB.agencies[code].gastoCats.includes('Bolt'))DB.agencies[code].gastoCats.push('Bolt')}}
+function depPrintHtml(D){const C=depCalc(D),d=C.d,secs=C.secs,f=v=>fmt(v);const sc=k=>secs.reduce((s,x)=>s+(x.c[k]||0),0);
+  const cnt=`<table><tr class="h"><td class="l">Denominación</td>${secs.map(x=>`<td>${esc(x.n)}</td>`).join('')}<td>Total</td><td>Monto</td></tr>${BILL.map(v=>`<tr><td class="l">Billetes ${f(v)}</td>${secs.map(x=>`<td>${x.c['b'+v]||0}</td>`).join('')}<td>${sc('b'+v)}</td><td>${f(sc('b'+v)*v)}</td></tr>`).join('')}<tr class="t"><td class="l">Total billetes</td>${secs.map(x=>`<td>${f(x.t.b)}</td>`).join('')}<td></td><td>${f(secs.reduce((s,x)=>s+x.t.b,0))}</td></tr>${MON.map(v=>`<tr><td class="l">Monedas ${f(v)}</td>${secs.map(x=>`<td>${x.c['m'+v]||0}</td>`).join('')}<td>${sc('m'+v)}</td><td>${f(sc('m'+v)*v)}</td></tr>`).join('')}<tr class="t"><td class="l">Total monedas</td>${secs.map(x=>`<td>${f(x.t.m)}</td>`).join('')}<td></td><td>${f(secs.reduce((s,x)=>s+x.t.m,0))}</td></tr><tr class="t"><td class="l">TOTAL EFECTIVO</td>${secs.map(x=>`<td>${f(x.t.t)}</td>`).join('')}<td></td><td>${f(C.efe)}</td></tr></table>`;
+  const r=(k,v,b)=>`<tr><td class="l">${k}</td><td>${f(v)}</td><td class="l">${esc(b||'')}</td></tr>`;
+  let dep=`<table><tr class="h"><td class="l">Concepto</td><td>Monto</td><td class="l">Boleta N°</td></tr>`+
+    r(`Villa Elisa (S. Depositar ${f(C.VE.sd)}${C.VE.o.transf?' − transf. '+f(C.VE.o.transf):''})`,C.VE.neto,C.VE.o.boleta)+r(`San Antonio (S. Depositar ${f(C.SA.sd)}${C.SA.o.transf?' − transf. '+f(C.SA.o.transf):''})`,C.SA.neto,C.SA.o.boleta)+
+    (d.bolt.monto?r('Bolt',d.bolt.monto,d.bolt.boleta):'')+(d.wb.monto?r('Dep WB',d.wb.monto,d.wb.boleta):'')+(d.corpos.monto?r('Corpos',d.corpos.monto,d.corpos.boleta):'')+
+    C.pnc.map(x=>r(esc(x.desc),x.monto,x.boleta)).join('')+(d.ger||[]).filter(x=>x.monto).map(x=>r(`Gerenciadora · Ag. ${x.ag}${x.desc?' · '+esc(x.desc):''}`,x.monto,x.boleta)).join('')+(d.otros||[]).filter(x=>x.monto).map(x=>r(esc(x.desc||'Otro depósito'),x.monto,x.boleta)).join('')+
+    `<tr class="t"><td class="l">TOTAL DEPÓSITOS</td><td>${f(C.total)}</td><td></td></tr></table>`;
+  return`<div class="pdoc"><div class="ph"><div><div class="pt">DEPÓSITOS Y CONTEO DE EFECTIVO</div><div>Ag. 17 Villa Elisa · Ag. 26 San Antonio</div></div><div style="text-align:right"><div class="pt">${dowOf(D)} ${dmy(D)}</div><div>Impreso el ${new Date().toLocaleString('es-PY')}</div></div></div>
+   <h4>CONTEO DE EFECTIVO (cantidades)</h4>${cnt}<h4>DEPÓSITOS</h4>${dep}
+   <div class="res ${C.dif===0?'':'neg'}">${C.dif>0?'FALTA EFECTIVO':C.dif<0?'EFECTIVO DE MÁS':'DEPÓSITOS = EFECTIVO'}: ₲ ${f(Math.abs(C.dif))}</div>${d.nota?`<h4>NOTA</h4><div class="nota">${esc(d.nota)}</div>`:''}
+   <div class="firmas"><div>Responsable</div><div>Recibido / Auditor</div></div></div>`}
 
 /* ====================== PREMIOS / PNC ====================== */
 const SORTEOS=[1,2,3,4,5,20];const SLET={1:'A',2:'B',3:'C',4:'D',5:'E',20:'P'};
@@ -706,6 +778,7 @@ function vCierreDia(){
   h+=`<div class="card"><h2>Egresos</h2><div class="lines">
     <div class="ln"><span class="k">Gastos del mes <small>(automático)</small></span><b>${fmt(cc.gastosMes)}</b></div>
     <div class="ln"><span class="k">Premios pagados del día</span>${money('cf',c.premios,'data-k="premios"')}</div>
+    ${cc.ger?`<div class="ln"><span class="k">Depósito a la gerenciadora <small>(desde Depósitos)</small></span><b class="click" data-a="tab" data-k="depositos">${fmt(cc.ger)}</b></div>`:''}
     <div class="ln"><span class="k">Deudas de corredores <small>(saldo abierto)</small></span><b>${fmt(cc.deu)}</b></div>
     <div class="ln"><span class="k">Efectivo en caja <small>(arqueo)</small></span><b>${fmt(cc.aq.t)}</b></div>
     <h3>Otros valores / depósitos</h3>${list('otrosEgr',c.otrosEgr)}
@@ -851,6 +924,11 @@ const ACT={
     ag.meses=ag.meses||{};ag.meses[ym]={cerrado:true,fecha:iso(new Date()),saldo,nota:$('#mnota').value.trim()};save();toast('Mes cerrado');render()},
   mreopen:()=>{const ag=AG(),ym=monthOf(S.date);if(!confirm(`¿Reabrir ${mesTxt(ym)}? El saldo deja de arrastrarse hasta que lo vuelvas a cerrar.`))return;ag.meses[ym].cerrado=false;save();render()},
   mprint:()=>window.print(),
+  dladd:b=>{const d=depEnsure(S.date);(d[b.dataset.l]=d[b.dataset.l]||[]).push(b.dataset.l==='ger'?{ag:DB.settings.agency,desc:'',monto:0,boleta:''}:{desc:'',monto:0,boleta:''});save();render()},
+  dldel:b=>{const d=depEnsure(S.date);d[b.dataset.l].splice(+b.dataset.i,1);save();render()},
+  dclr:()=>{if(!confirm('¿Poner en cero el conteo de efectivo de este día?'))return;const d=depEnsure(S.date);d.counts=[{},{},{},{},{}];save();render()},
+  dsecren:b=>{const id=+b.dataset.i;const cur=DEP_SEC().find(x=>x.id===id);const n=prompt('Nombre de esta columna de conteo',cur?cur.n:'');if(n&&n.trim()){const o={};DEP_SEC().forEach(x=>o[x.id]=x.n);o[id]=n.trim();DB.settings.depSec=o;save();render()}},
+  dprint:()=>printPages([depPrintHtml(S.date)]),
   cprint:()=>printPages([cierrePrintHtml(AG(),S.date)]),
   cfreeze:()=>{const ag=AG(),D=S.date;const c=ensureC(ag,D);c.snap=snapOf(ag,D);save();toast('Día cerrado: los números quedan fijos');render()},
   cunfreeze:()=>{const ag=AG(),D=S.date;const c=ag.cierres[D];if(!c||!c.snap)return;if(!confirm('¿Reabrir el día? Los números se van a recalcular con los datos actuales (premios, deudas, gastos y ventas).'))return;delete c.snap;save();render()},
@@ -948,6 +1026,11 @@ const CHG={
     String(t.value).split(/[^\d]+/).filter(Boolean).forEach(k=>ag.mapeo[String(+k)]=n);save();toast('Corredores actualizados');render()},
   cobmap:t=>{const ag=AG();if(!t.value)return;ag.mapeo[t.dataset.k]=t.value;save();toast(`Corredor ${t.dataset.k} asignado`);render()},
   snapv:t=>{const c=AG().cierres[S.date];if(!c||!c.snap)return;c.snap[t.dataset.k]=pnum(t.value);resnap(c.snap);save();render()},
+  dq:t=>{const d=depEnsure(S.date);d.counts=d.counts||[];const i=+t.dataset.i;d.counts[i]=d.counts[i]||{};d.counts[i][t.dataset.k]=Math.max(0,pnum(t.value));save();render()},
+  dv:t=>{const d=depEnsure(S.date);const[a,b]=t.dataset.f.split('.');const txt=/boleta|nota|ag$/.test(t.dataset.f);
+    if(!b)d[a]=t.value;else{d[a]=d[a]||{};d[a][b]=txt||b==='ag'?t.value:(t.value.trim()===''&&b==='sdep'?null:pnum(t.value))}
+    if(a==='bolt')syncBolt(S.date);save();render()},
+  dl:t=>{const d=depEnsure(S.date);const x=d[t.dataset.l][+t.dataset.i];const f=t.dataset.f;x[f]=f==='monto'?pnum(t.value):t.value;save();render()},
   agname:t=>{AG().name=t.value.trim()||AG().name;save();render()},
   rkbase:t=>{AG().rk.base=ppct(t.value);save();render()},
   capct:t=>{AG().comAgPct=ppct(t.value);save();render()},
@@ -1019,7 +1102,7 @@ const GD={token:null,exp:0,folder:null,FOLDER:'CRz Caja Diaria - Respaldos',
   async get(id){return(await this.api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json()}};
 const backupJson=()=>JSON.stringify({app:'crz-caja-diaria',fullBackup:true,fecha:new Date().toISOString(),data:DB});
 function gdListHtml(){const L=S.gdList||[];return L.length?`<table style="margin-top:8px"><tbody>${L.map(f=>`<tr><td class="tl">${new Date(f.createdTime).toLocaleString('es-PY')}<div class="note">${esc(f.name)} · ${Math.round((+f.size||0)/1024)} KB</div></td><td><button class="btn sm" data-a="gdrest" data-id="${f.id}">Restaurar</button></td></tr>`).join('')}</tbody></table>`:'<p class="note">No hay respaldos en Drive todavía.</p>'}
-function load2(){for(const k of['17','26'])DB.agencies[k]=Object.assign(defAgency(k),DB.agencies[k]||{});DB.settings=DB.settings||{agency:'17',theme:'light'}}
+function load2(){DB.depositos=DB.depositos||{};for(const k of['17','26'])DB.agencies[k]=Object.assign(defAgency(k),DB.agencies[k]||{});DB.settings=DB.settings||{agency:'17',theme:'light'}}
 
 $('#fileprem').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{await handlePremFile(f)}catch(err){alert('No se pudo leer el archivo: '+err.message)}});
 document.addEventListener('dragover',e=>{if(S.tab!=='premios')return;e.preventDefault();const z=$('#pdrop');if(z)z.classList.add('on')});
