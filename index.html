@@ -143,7 +143,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.18</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.19</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -1050,9 +1050,11 @@ for(const l of Object.keys(LISTS))CHG[l]=t=>{const ag=AG();const arr=LISTS[l](ag
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const f=ACT[b.dataset.a];if(f){e.preventDefault();f(b,e)}});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.c&&CHG[t.dataset.c]){S.defer=true;try{CHG[t.dataset.c](t)}finally{S.defer=false}}});
-document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&(t.classList.contains('money')||t.classList.contains('num')||t.classList.contains('pct')))setTimeout(()=>t.select(),0)});
+document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&(t.classList.contains('money')||t.classList.contains('num')||t.classList.contains('pct'))){const v0=t.value;setTimeout(()=>{if(t.value===v0&&document.activeElement===t)t.select()},0)}});
 document.addEventListener('focusout',e=>{const t=e.target;if(t.classList&&t.classList.contains('money')&&t.value.trim())t.value=fmt(pnum(t.value))});
 document.addEventListener('keydown',e=>{const t=e.target;if(e.key!=='Enter'||t.tagName!=='INPUT')return;
+  if(t.dataset.c==='dq'||t.dataset.c==='cq'){e.preventDefault();const keys=[...BILL.map(v=>'b'+v),...MON.map(v=>'m'+v)];const k=keys.indexOf(t.dataset.k);const nk=keys[k+(e.shiftKey?-1:1)];
+    const sel=t.dataset.c==='dq'?`[data-c=dq][data-i="${t.dataset.i}"][data-k="${nk}"]`:`[data-c=cq][data-k="${nk}"]`;const nx=nk&&document.querySelector(sel);if(nx)nx.focus();else t.blur();return}
   if(t.id==='pbol'){e.preventDefault();ACT.ppay();return}
   if(t.classList.contains('pe-c')||t.classList.contains('pe-b')){e.preventDefault();const col=t.closest('.scol');(t.classList.contains('pe-c')?col.querySelector('.pe-b'):col.querySelector('.pe-m')).focus();return}
   if(t.classList.contains('pe-m')){e.preventDefault();ACT.padd2(t.closest('.scol').querySelector('[data-a=padd2]'));return}
