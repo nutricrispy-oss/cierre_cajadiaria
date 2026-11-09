@@ -143,7 +143,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.19</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.20</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -779,7 +779,7 @@ function vCierreDia(){
     <div class="ln"><span class="k">Gastos del mes <small>(automático)</small></span><b>${fmt(cc.gastosMes)}</b></div>
     <div class="ln"><span class="k">Premios pagados del día</span>${money('cf',c.premios,'data-k="premios"')}</div>
     ${cc.ger?`<div class="ln"><span class="k">Depósito a la gerenciadora <small>(desde Depósitos)</small></span><b class="click" data-a="tab" data-k="depositos">${fmt(cc.ger)}</b></div>`:''}
-    <div class="ln"><span class="k">Deudas de corredores <small>(saldo abierto)</small></span><b>${fmt(cc.deu)}</b></div>
+    <div class="ln"><span class="k">Deudas de corredores <small>(saldo al ${dm(D)})</small></span><b class="click" data-a="tab" data-k="deudas" title="Ver en Deudas (misma fecha)">${fmt(cc.deu)}</b></div>
     <div class="ln"><span class="k">Efectivo en caja <small>(arqueo)</small></span><b>${fmt(cc.aq.t)}</b></div>
     <h3>Otros valores / depósitos</h3>${list('otrosEgr',c.otrosEgr)}
     <div class="ln tot"><span>Total egresos</span><span>${gs(cc.egr)}</span></div></div></div>`;
@@ -804,14 +804,14 @@ function vDeudas(){
    <button class="btn" data-a="dadd" style="align-self:flex-end">${tipo==='deuda'?'Registrar deuda':'Registrar pago'}</button></div></div>`;
   const cf=S.dCobF||'';
   h+=`<div class="card"><div class="row"><b>Ver cobrador:</b><span class="tabsmall"><button class="${!cf?'on':''}" data-a="dcobf" data-k="">Todos</button>${ag.cobradores.map(c=>`<button class="${cf===c.name?'on':''}" data-a="dcobf" data-k="${esc(c.name)}">${esc(c.name)}</button>`).join('')}</span><span class="hsp" style="flex:1"></span>${cf?`<button class="btn" data-a="dwa" style="background:#25a244;border-color:#25a244">Enviar deudas de ${esc(cf.split(' ')[0])} por WhatsApp</button>`:`<span class="note">Elegí un cobrador para ver solo sus corredores y enviarle sus deudas por WhatsApp.</span>`}</div></div>`;
-  const sal=deudaSaldos(ag).filter(o=>!cf||o.cobrador===cf);const ab=sal.filter(o=>o.saldo>0).sort((a,b)=>b.saldo-a.saldo);
+  const sal=deudaSaldos(ag,D).filter(o=>!cf||o.cobrador===cf);const posteriores=ag.deudas.filter(x=>x.fecha>D).length;const ab=sal.filter(o=>o.saldo>0).sort((a,b)=>b.saldo-a.saldo);
   const porCob={};ab.forEach(o=>porCob[o.cobrador]=(porCob[o.cobrador]||0)+o.saldo);
-  h+=`<div class="kpis">${kpi('Total adeudado (hoy)',gs(ab.reduce((s,o)=>s+o.saldo,0)),`${ab.length} corredores con saldo`)}${Object.entries(porCob).map(([c,v])=>kpi(esc(c),gs(v))).join('')}</div>`;
-  h+=`<div class="grid2"><div class="card"><h2>Saldos abiertos</h2><div class="tw"><table><thead><tr><th>Corredor</th><th class="tl">Cobrador</th><th>Deuda</th><th>Pagado</th><th>Saldo</th><th>Último mov.</th><th></th></tr></thead><tbody>${ab.map(o=>`<tr><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td>${fmt(o.deuda)}</td><td>${fmt(o.pagado)}</td><td class="neg"><b>${fmt(o.saldo)}</b></td><td>${dmy(o.last)}</td><td><button class="btn sm ghost" data-a="dsaldar" data-k="${esc(o.corredor)}">Saldar</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nadie debe nada 👍</td></tr>'}</tbody></table></div></div>`;
+  h+=`<div class="kpis">${kpi(`Total adeudado al ${dm(D)}`,gs(ab.reduce((s,o)=>s+o.saldo,0)),`${ab.length} corredores con saldo`)}${Object.entries(porCob).map(([c,v])=>kpi(esc(c),gs(v))).join('')}</div>`;
+  h+=`<div class="grid2"><div class="card"><h2>Saldos abiertos al ${dmy(D)}${posteriores?` <span class="badge warn" title="Movimientos con fecha posterior al ${dmy(D)} que no se cuentan acá">${posteriores} mov. posteriores</span>`:''}</h2><div class="tw"><table><thead><tr><th>Corredor</th><th class="tl">Cobrador</th><th>Deuda</th><th>Pagado</th><th>Saldo</th><th>Último mov.</th><th></th></tr></thead><tbody>${ab.map(o=>`<tr><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td>${fmt(o.deuda)}</td><td>${fmt(o.pagado)}</td><td class="neg"><b>${fmt(o.saldo)}</b></td><td>${dmy(o.last)}</td><td><button class="btn sm ghost" data-a="dsaldar" data-k="${esc(o.corredor)}">Saldar</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nadie debe nada 👍</td></tr>'}</tbody></table></div></div>`;
   const rk=[...sal].sort((a,b)=>b.n-a.n||b.deuda-a.deuda).slice(0,15);
   h+=`<div class="card"><h2>Corredores más recurrentes</h2><div class="tw"><table><thead><tr><th>#</th><th>Corredor</th><th class="tl">Cobrador</th><th>Veces</th><th>Total adeudado</th><th class="tl">Motivos</th></tr></thead><tbody>${rk.map((o,i)=>`<tr><td>${i+1}</td><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td><span class="badge ${o.n>=5?'bad':o.n>=3?'warn':''}">${o.n}</span></td><td>${fmt(o.deuda)}</td><td class="tl mut">${Object.entries(o.motivos).map(([m,n])=>esc(m)+' ×'+n).join(', ')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sin registros</td></tr>'}</tbody></table></div></div></div>`;
   const fil=S.dFil.trim();const corrs=new Set(sal.map(o=>o.corredor));const mov=ag.deudas.filter(x=>(!cf||corrs.has(String(x.corredor).trim()))&&(fil?String(x.corredor).trim()===fil:x.fecha.startsWith(ym))).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  h+=`<div class="card"><h2>Movimientos ${fil?'del corredor '+esc(fil):'de '+mesTxt(ym)}<span class="sp"></span><label class="row" style="font-size:12px;color:var(--muted)">Buscar corredor <input id="dfil" class="num" value="${esc(S.dFil)}" data-c="dfil"></label></h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Corredor</th><th class="tl">Cobrador</th><th class="tl">Tipo</th><th>Monto</th><th class="tl">Referencia</th><th></th></tr></thead><tbody>${mov.map(x=>`<tr><td>${dmy(x.fecha)}</td><td><b>${esc(x.corredor)}</b></td><td class="tl">${esc(x.cobrador)}</td><td class="tl">${x.tipo==='pago'?'<span class="badge ok">Pago</span>':`<span class="badge bad">${esc(x.motivo)}</span>`}</td><td>${fmt(x.monto)}</td><td class="tl mut">${esc(x.ref||'')}</td><td><button class="btn x" data-a="ddel" data-id="${x.id}">✕</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin movimientos</td></tr>'}</tbody></table></div></div>`;
+  h+=`<div class="card"><h2>Movimientos ${fil?'del corredor '+esc(fil):'de '+mesTxt(ym)}<span class="sp"></span><label class="row" style="font-size:12px;color:var(--muted)">Buscar corredor <input id="dfil" class="num" value="${esc(S.dFil)}" data-c="dfil"></label></h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Corredor</th><th class="tl">Cobrador</th><th class="tl">Tipo</th><th>Monto</th><th class="tl">Referencia</th><th></th></tr></thead><tbody>${mov.map(x=>`<tr><td class="${x.fecha>D?'mut':''}">${dmy(x.fecha)}</td><td><b>${esc(x.corredor)}</b></td><td class="tl">${esc(x.cobrador)}</td><td class="tl">${x.tipo==='pago'?'<span class="badge ok">Pago</span>':`<span class="badge bad">${esc(x.motivo)}</span>`}</td><td>${fmt(x.monto)}</td><td class="tl mut">${esc(x.ref||'')}</td><td style="white-space:nowrap"><button class="btn x" data-a="dedit" data-id="${x.id}" title="Cambiar fecha o monto" style="color:var(--pri)">✎</button><button class="btn x" data-a="ddel" data-id="${x.id}">✕</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin movimientos</td></tr>'}</tbody></table></div></div>`;
   return h;
 }
 
@@ -973,7 +973,7 @@ const ACT={
   cobprint:b=>printCobros(b.dataset.k?+b.dataset.k:0),
   dcobf:b=>{S.dCobF=b.dataset.k;render()},
   dwa:()=>{const ag=AG(),cf=S.dCobF;const cob=ag.cobradores.find(c=>c.name===cf)||{};
-    const ab=deudaSaldos(ag).filter(o=>o.cobrador===cf&&o.saldo>0).sort((a,b)=>(+a.corredor||0)-(+b.corredor||0));
+    const ab=deudaSaldos(ag,S.date).filter(o=>o.cobrador===cf&&o.saldo>0).sort((a,b)=>(+a.corredor||0)-(+b.corredor||0));
     if(!ab.length){toast('Este cobrador no tiene deudas pendientes');return}
     const L=[`*Deudas pendientes – ${cf}*`,`${ag.name} · al ${dmy(S.date)}`,''];
     for(const o of ab){const movs=ag.deudas.filter(x=>String(x.corredor).trim()===o.corredor&&x.tipo!=='pago');const ult=movs.sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
@@ -987,6 +987,9 @@ const ACT={
     S.dCorr='';save();toast(tipo==='pago'?'Pago registrado':'Deuda registrada');render();$('#dcorr').focus()},
   dsaldar:b=>{const ag=AG();const o=deudaSaldos(ag).find(x=>x.corredor===b.dataset.k);if(!o||o.saldo<=0)return;if(!confirm(`¿Registrar pago de ${gs(o.saldo)} del corredor ${o.corredor} con fecha ${dmy(S.date)}?`))return;
     ag.deudas.push({id:uid(),fecha:S.date,cobrador:o.cobrador,corredor:o.corredor,tipo:'pago',motivo:'Pago',monto:o.saldo,ref:'Saldado'});save();render()},
+  dedit:b=>{const ag=AG();const x=ag.deudas.find(y=>y.id===b.dataset.id);if(!x)return;const f=prompt('Fecha del movimiento (dd/mm/aaaa)',dmy(x.fecha));if(f===null)return;const nf=parseDmy(f);if(!nf){alert('Fecha inválida');return}
+    const m=prompt('Monto',fmt(x.monto));if(m===null)return;const nm=pnum(m);if(!nm){alert('Monto inválido');return}
+    x.fecha=nf;x.monto=nm;save();toast('Movimiento actualizado');render()},
   ddel:b=>{const ag=AG();if(confirm('¿Borrar este movimiento?')){ag.deudas=ag.deudas.filter(x=>x.id!==b.dataset.id);save();render()}},
   mpaste:b=>{S.metaPaste=S.metaPaste===b.dataset.n?null:b.dataset.n;render()},mpcancel:()=>{S.metaPaste=null;render()},
   mpsave:b=>{const ag=AG(),m=ensureM(ag,monthOf(S.date));const det=parseCorredores($('#mpastetxt').value);if(!det.length){toast('No se reconocieron filas');return}
