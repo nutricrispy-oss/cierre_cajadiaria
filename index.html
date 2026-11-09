@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CRz Caja Diaria</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e5a8a">
+<meta name="theme-color" content="#0d6b44">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-:root{--bg:#f2f5fa;--card:#fff;--text:#18212f;--muted:#68738a;--line:#e1e6ef;--pri:#1e6fb8;--pri2:#e7f0fa;--ok:#15803d;--okbg:#e8f6ee;--bad:#c62828;--badbg:#fdecec;--warn:#b45309;--warnbg:#fff4e0;--head:#1e5a8a;--input:#fff;--shadow:0 1px 3px rgba(20,30,50,.08)}
-[data-theme="dark"]{--bg:#0e131c;--card:#161e2b;--text:#e5eaf3;--muted:#93a0b6;--line:#273246;--pri:#5aa7ef;--pri2:#1b2c42;--ok:#4ade80;--okbg:#12291c;--bad:#f87171;--badbg:#2e1616;--warn:#fbbf24;--warnbg:#2c2210;--head:#122a42;--input:#0f1621;--shadow:none}
+:root{--bg:#f1f7f3;--card:#fff;--text:#14261c;--muted:#5f7568;--line:#dce9e1;--pri:#138a5a;--pri2:#e3f4ea;--ok:#15803d;--okbg:#e8f6ee;--bad:#c62828;--badbg:#fdecec;--warn:#b45309;--warnbg:#fff4e0;--head:#0d6b44;--input:#fff;--shadow:0 1px 3px rgba(20,30,50,.08)}
+[data-theme="dark"]{--bg:#0c1511;--card:#13211a;--text:#e3f1e8;--muted:#8fa99a;--line:#22382c;--pri:#3ecf8e;--pri2:#163327;--ok:#4ade80;--okbg:#12291c;--bad:#f87171;--badbg:#2e1616;--warn:#fbbf24;--warnbg:#2c2210;--head:#0b3a27;--input:#0e1a14;--shadow:none}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{background:var(--head);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
@@ -114,6 +114,7 @@ input.money.big{width:100%;font-size:20px;font-weight:700;padding:9px 12px}
 .citem .m{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;min-width:120px}.citem .sp{flex:1}
 .citem.nuevo{background:var(--okbg)}.citem.edit{background:var(--warnbg)}
 .ctot{display:flex;justify-content:space-between;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warnbg);color:var(--warn);font-weight:800;font-size:16px}
+[data-theme="dark"] .btn:not(.ghost):not(.danger):not(.x),[data-theme="dark"] .tabsmall button.on{color:#06281a}
 #printArea{display:none}
 .depg{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 @media(max-width:1650px){.depg{grid-template-columns:minmax(0,1fr)}}
@@ -156,7 +157,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.23</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.24</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
