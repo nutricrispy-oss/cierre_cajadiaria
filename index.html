@@ -143,7 +143,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.21</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.22</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -224,7 +224,9 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){toast('No se pudo guardar: '+e.message)}}
 const AG=()=>DB.agencies[DB.settings.agency];
-const S={tab:'resumen',date:iso(new Date()),vmode:'bruto',pastePrev:null,gEdit:null,metaPaste:null,dFil:''};
+const lagOn=()=>!DB||!DB.settings||DB.settings.lag!==false;
+const fechaCaja=()=>lagOn()?addDays(iso(new Date()),-1):iso(new Date());
+const S={tab:'resumen',date:null,vmode:'bruto',pastePrev:null,gEdit:null,metaPaste:null,dFil:''};
 
 /* ====================== cálculos ====================== */
 const pctOf=(ag,name)=>{const p=ag.products.find(x=>norm(x.name)===norm(name));return p?+p.pct||0:0};
@@ -395,7 +397,7 @@ function doRender(){
   document.documentElement.dataset.theme=DB.settings.theme;
   $('#agsel').innerHTML=['17','26'].map(k=>`<button class="${DB.settings.agency===k?'on':''}" data-a="agency" data-k="${k}">${esc(DB.agencies[k].name)}</button>`).join('');
   $('#tabs').innerHTML=TABS.map(([k,t])=>`<button class="${S.tab===k?'on':''}" data-a="tab" data-k="${k}">${t}</button>`).join('');
-  $('#datebar').innerHTML=`<button class="btn sm ghost" data-a="dprev" title="Día anterior">◀</button><input id="dinput" class="dinput" inputmode="numeric" maxlength="10" value="${dmy(S.date)}" title="Escribí la fecha dd/mm/aaaa"><button class="btn sm ghost" data-a="dnext" title="Día siguiente">▶</button><button class="btn sm ghost" data-a="dtoday">Hoy</button><span class="dlabel">${dowOf(S.date)} · ${mesTxt(monthOf(S.date))}</span>`;
+  $('#datebar').innerHTML=`<button class="btn sm ghost" data-a="dprev" title="Día anterior">◀</button><input id="dinput" class="dinput" inputmode="numeric" maxlength="10" value="${dmy(S.date)}" title="Escribí la fecha dd/mm/aaaa"><button class="btn sm ghost" data-a="dnext" title="Día siguiente">▶</button><button class="btn sm ghost" data-a="dtoday" title="${lagOn()?'Ir a la fecha de caja (ayer)':'Ir a hoy'}">${lagOn()?'Fecha de caja':'Hoy'}</button><span class="dlabel">${dowOf(S.date)} · ${mesTxt(monthOf(S.date))}</span>${lagOn()&&S.date===fechaCaja()?' <span class="badge ok">fecha de caja</span>':lagOn()&&S.date===iso(new Date())?' <span class="badge warn">ojo: es la fecha de hoy, no la de caja</span>':''}${lagOn()&&fromIso(S.date).getDay()===0?' <span class="badge">sábado + domingo</span>':''}`;
   maskDate($('#dinput'),v=>{S.date=v;render()});
   const V={resumen:vResumen,ventas:vVentas,cobros:vCobros,premios:vPremios,gastos:vGastos,cierre:vCierre,depositos:vDepositos,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
   $('#view').innerHTML=V();
@@ -487,10 +489,10 @@ function printCobros(which){const ag=AG(),D=S.date;let pages=cobPages(ag,D);if(w
   setTimeout(()=>window.print(),50)}
 function vCobros(){
   const ag=AG(),D=S.date,v=ag.cobros[D];
-  const dw=fromIso(D).getDay();const esHoy=D===iso(new Date());
+  const dw=fromIso(D).getDay();const esHoy=lagOn()&&D===iso(new Date());
   let h=`<div class="card noprint"><h2>Pegar cobros del ${dmy(D)} · ${dowOf(D)}${dw===0?' <span class="badge">incluye ventas del sábado y domingo</span>':''}<span class="sp"></span><button class="btn sm ghost" data-a="cobayer">Usar fecha de ayer</button></h2>
   ${esHoy?`<div class="alert">Ojo: la fecha elegida es <b>hoy</b>. La planilla de cobros lleva la fecha del día anterior (las ventas de ayer se cobran hoy).</div>`:''}
-  <p class="note" style="margin-top:0">Copiá la <b>Planilla de Cobros</b> del TDPbiz (o la hoja COBROS de tu Excel) desde el encabezado "№ · Bruto · B. Quiniela…" hasta la última fila, y pegala acá. Al entrar a Cobros la fecha se pone sola en <b>ayer</b>: es la que sale impresa en la hoja. Los lunes queda la fecha del <b>domingo</b> y la planilla trae sábado y domingo juntos.</p>
+  <p class="note" style="margin-top:0">Copiá la <b>Planilla de Cobros</b> del TDPbiz (o la hoja COBROS de tu Excel) desde el encabezado "№ · Bruto · B. Quiniela…" hasta la última fila, y pegala acá. La app arranca siempre en la <b>fecha de caja</b> (ayer): es la que sale impresa en la hoja. Los lunes queda la fecha del <b>domingo</b> y la planilla trae sábado y domingo juntos.</p>
   <textarea id="cobpaste" placeholder="№	Bruto	B. Quiniela	C. Quiniela	…	Neto"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="cobparse">Procesar</button></div>`;
   if(S.cobPrev){const P=S.cobPrev;const g=cobGroups(ag,P.rows);
     h+=`<h3>Vista previa · ${P.rows.length} corredores · se guardará en el ${dmy(D)}</h3><div class="tw"><table><thead><tr><th>Cobrador</th><th>Corredores</th><th>B. Quiniela</th><th>Neto</th></tr></thead><tbody>${ag.cobradores.filter(c=>g[c.name].length).map(c=>`<tr><td>${esc(c.name)}</td><td>${g[c.name].length}</td><td>${fmt(sumK(g[c.name],'quin'))}</td><td>${fmt(sumK(g[c.name],'neto'))}</td></tr>`).join('')}${g.__SIN.length?`<tr><td><span class="badge warn">Sin asignar</span> ${g.__SIN.map(r=>r.n).join(', ')}</td><td>${g.__SIN.length}</td><td>${fmt(sumK(g.__SIN,'quin'))}</td><td>${fmt(sumK(g.__SIN,'neto'))}</td></tr>`:''}</tbody><tfoot><tr><td>Total</td><td>${P.rows.length}</td><td>${fmt(sumK(P.rows,'quin'))}</td><td>${fmt(sumK(P.rows,'neto'))}</td></tr></tfoot></table></div>`;
@@ -514,7 +516,7 @@ const DEP_SEC=()=>{const cfg=DB.settings.depSec;const nm=Array.isArray(cfg)?Obje
 const depOf=D=>DB.depositos[D]||null;
 function depEnsure(D){return DB.depositos[D]||(DB.depositos[D]={counts:[{},{},{},{},{}],ve:{},sa:{},bolt:{ag:'17'},wb:{},corpos:{},ger:[],otros:[]})}
 function depGer(code,D){const d=depOf(D);return d?(d.ger||[]).filter(x=>x.ag===code).reduce((s,x)=>s+(x.monto||0),0):0}
-function sdepAuto(code,D){const v=DB.agencies[code].ventas;const ds=Object.keys(v).filter(d=>d<D&&v[d].sDep).sort();const d=ds[ds.length-1];return d?{d,m:v[d].sDep}:null}
+function sdepAuto(code,D){const v=DB.agencies[code].ventas;const ds=Object.keys(v).filter(d=>(lagOn()?d<=D:d<D)&&v[d].sDep).sort();const d=ds[ds.length-1];return d?{d,m:v[d].sDep}:null}
 const cntTot=c=>{let b=0,m=0;for(const d of BILL)b+=(c['b'+d]||0)*d;for(const d of MON)m+=(c['m'+d]||0)*d;return{b,m,t:b+m}};
 function pncDepLines(D){const out=[];for(const code of['17','26']){const ag=DB.agencies[code];for(const[ym,dp]of Object.entries(ag.pncDep||{}))if(dp.fecha===D)out.push({desc:`PNC ${mesTxt(ym)} · ${ag.name}`,monto:dp.monto||0,boleta:dp.nota||''})}return out}
 function depCalc(D){const d=depOf(D)||{counts:[{},{},{},{}],ve:{},sa:{},bolt:{},wb:{},corpos:{},ger:[],otros:[]};
@@ -765,8 +767,10 @@ function vCierreDia(){
   const ag=AG(),D=S.date,ym=monthOf(D),cc=cierreCalc(ag,D),c=cc.c;
   const list=(k,arr)=>`${(arr||[]).map((x,i)=>`<div class="ln"><input style="flex:1" data-c="cl" data-k="${k}" data-i="${i}" data-f="desc" value="${esc(x.desc)}" placeholder="Concepto">${money('cl',x.monto,`data-k="${k}" data-i="${i}" data-f="monto"`)}<button class="btn x" data-a="cldel" data-k="${k}" data-i="${i}">✕</button></div>`).join('')}<div style="padding:6px 0"><button class="btn sm ghost" data-a="cladd" data-k="${k}">+ Agregar línea</button></div>`;
   let h='';
+  if(lagOn()&&!cc.frozen&&D===fechaCaja()){const T=iso(new Date());const nD=ag.deudas.filter(x=>x.fecha===T).length,nP=allPrem(ag).filter(([,x])=>x.pf===T).length,nG=ag.gastos.filter(g=>g.fecha===T).length,nC=ag.cierres[T]?1:0;
+    if(nD+nP+nG+nC)h+=`<div class="alert" data-keep>Hay registros con la fecha de <b>hoy (${dmy(T)})</b>, pero la caja de hoy es la del <b>${dmy(D)}</b>: ${[nD?nD+' deudas/pagos':'',nP?nP+' premios pagados':'',nG?nG+' gastos':'',nC?'un cierre':''].filter(Boolean).join(', ')}. <button class="btn sm" data-a="lagfix" style="margin-left:6px">Pasarlos al ${dm(D)}</button></div>`}
   if(cc.frozen)h+=`<div class="alert ok" data-keep>🔒 <b>Día cerrado</b> el ${new Date(c.snap.fecha).toLocaleString('es-PY')}. Estos números quedan fijos aunque después cambien premios, deudas o gastos. Si hace falta, podés corregir el PNC a mano acá abajo. <button class="btn sm ghost" data-a="cunfreeze" style="margin-left:6px">Reabrir día</button></div>`;
-  else if(D<iso(new Date())&&cc.exists)h+=`<div class="alert" data-keep>Este día todavía no está cerrado: sus números se recalculan si cambian premios, deudas, gastos o ventas. Cuando esté bien, tocá <b>"Cerrar el día"</b>. <button class="btn sm" data-a="cfreeze" style="margin-left:6px">Cerrar el día</button></div>`;
+  else if(D<fechaCaja()&&cc.exists)h+=`<div class="alert" data-keep>Este día todavía no está cerrado: sus números se recalculan si cambian premios, deudas, gastos o ventas. Cuando esté bien, tocá <b>"Cerrar el día"</b>. <button class="btn sm" data-a="cfreeze" style="margin-left:6px">Cerrar el día</button></div>`;
   else h+=`<div class="alert">Al terminar el día, tocá <b>"Cerrar el día"</b> (abajo) para que estos números queden fijos. Los premios pagados del día cuentan como efectivo hasta que se descuentan al día siguiente.</div>`;
   h+=`<div class="grid3"><div class="card"><h2>Ingresos<span class="sp"></span>${cc.pncAutoA&&cc.pncAutoP?'':`<button class="btn sm ghost" data-a="pnccopy" title="Copiar PNC del último cierre">Copiar PNC anterior</button>`}</h2><div class="lines">
     ${cc.saldoPrev||isClosed(ag,prevYm(ym))?`<div class="ln"><span class="k">Saldo del mes anterior <small>(arrastrado de ${mesTxt(prevYm(ym))})</small></span><b>${fmt(cc.saldoPrev)}</b></div>`:''}
@@ -874,6 +878,7 @@ function vAjustes(){
   <div class="grid2"><div class="card"><h2>Comisión RK de cobradores</h2><div class="row"><label>Tasa base %<input class="pct" data-c="rkbase" value="${pf(ag.rk.base,3)}"></label></div><h3>Escalones (meta de agencia → tasa)</h3><div class="tw"><table><thead><tr><th>Meta agencia desde</th><th class="tl">Tasa %</th><th></th></tr></thead><tbody>${rowsList(ag.rk.tiers,'ltier',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="ltier" style="margin-top:8px">+ Escalón</button><p class="note">La meta individual de cada cobrador = meta de agencia × su participación.</p></div>
   <div class="card"><h2>Escala de metas de la agencia</h2><div class="tw"><table><thead><tr><th>Meta desde</th><th class="tl">%</th><th></th></tr></thead><tbody>${rowsList(ag.escala,'lesc',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lesc" style="margin-top:8px">+ Meta</button>
   <div class="row" style="margin-top:12px"><label>Comisión agencia Quiniela %<input class="pct" data-c="capct" value="${pf(ag.comAgPct,3)}"></label><label>Sueldos + gastos %<input class="pct" data-c="sgpct" value="${pf(ag.sueldosPct,3)}"></label></div></div></div>
+  <div class="card"><h2>Fecha de trabajo</h2><label class="row" style="gap:8px"><input type="checkbox" data-c="lagset" ${lagOn()?'checked':''}> Trabajar con un día de retraso (la app arranca en la fecha de ayer; los lunes queda en el domingo, que junta sábado y domingo)</label><p class="note">Todo lo que se registra (ventas, cobros, premios pagados, deudas, gastos, depósitos y cierre) queda con la fecha de arriba.</p></div>
   <div class="card"><h2>Zona peligrosa</h2><button class="btn danger" data-a="reset">Borrar todos los datos de ${esc(ag.name)}</button> <span class="note">Descargá un backup antes.</span></div>`;
   return h;
 }
@@ -887,9 +892,9 @@ function ensureM(ag,ym){return ag.metas[ym]||(ag.metas[ym]={cobr:{}})}
 function cleanDay(ag,D){const v=ag.ventas[D];if(!v)return;for(const k in v.items){const it=v.items[k];if(!it.bruto&&!it.com&&!it.cant)delete v.items[k]}if(!Object.keys(v.items).length&&!v.sAnt&&!v.dep&&!v.sDep)delete ag.ventas[D]}
 const ACT={
   agency:b=>{DB.settings.agency=b.dataset.k;S.pastePrev=null;S.metaPaste=null;S.gEdit=null;save();render()},
-  tab:b=>{S.tab=b.dataset.k;if(S.tab==='cobros'&&S.date===iso(new Date()))S.date=addDays(S.date,-1);render();scrollTo(0,0)},
+  tab:b=>{S.tab=b.dataset.k;render();scrollTo(0,0)},
   theme:()=>{DB.settings.theme=DB.settings.theme==='dark'?'light':'dark';save();render()},
-  dprev:()=>{S.date=addDays(S.date,-1);render()},dnext:()=>{S.date=addDays(S.date,1);render()},dtoday:()=>{S.date=iso(new Date());render()},
+  dprev:()=>{S.date=addDays(S.date,-1);render()},dnext:()=>{S.date=addDays(S.date,1);render()},dtoday:()=>{S.date=fechaCaja();render()},
   goto:b=>{S.date=b.dataset.d;render()},
   pparse:()=>{const t=$('#paste').value;const P=parseTDP(t);if(!P.rows.length){alert('No se reconocieron filas de productos.\n\nLo que llegó al pegar empieza así:\n\n'+(t.trim().slice(0,300)||'(vacío)')+'\n\nCopiá la tabla desde "Producto" hasta la fila "Total".');return}S.pastePrev=P;S.pasteText=t;render()},
   pclear:()=>{S.pastePrev=null;render()},pcancel:()=>{S.pastePrev=null;render()},
@@ -930,6 +935,10 @@ const ACT={
   dsecren:b=>{const id=+b.dataset.i;const cur=DEP_SEC().find(x=>x.id===id);const n=prompt('Nombre de esta columna de conteo',cur?cur.n:'');if(n&&n.trim()){const o={};DEP_SEC().forEach(x=>o[x.id]=x.n);o[id]=n.trim();DB.settings.depSec=o;save();render()}},
   dprint:()=>printPages([depPrintHtml(S.date)]),
   cprint:()=>printPages([cierrePrintHtml(AG(),S.date)]),
+  lagfix:()=>{const ag=AG(),D=S.date,T=iso(new Date());if(!confirm(`¿Pasar al ${dmy(D)} todas las deudas/pagos, premios pagados y gastos que quedaron con fecha ${dmy(T)} en ${ag.name}?`))return;let n=0;
+    ag.deudas.forEach(x=>{if(x.fecha===T){x.fecha=D;n++}});allPrem(ag).forEach(([,x])=>{if(x.pf===T){x.pf=D;n++}});ag.gastos.forEach(g=>{if(g.fecha===T){g.fecha=D;n++}});
+    if(ag.cierres[T]){const t=ag.cierres[T];if(!ag.cierres[D])ag.cierres[D]=t;else{const c=ag.cierres[D];for(const k in t)if(c[k]==null||c[k]===''||(Array.isArray(c[k])&&!c[k].length))c[k]=t[k]}delete ag.cierres[T];n++}
+    save();toast(`${n} registros pasados al ${dmy(D)}`);render()},
   cmove:()=>{const ag=AG(),D=S.date;const c=ag.cierres[D];if(!c||c.snap)return;const f=prompt('¿A qué fecha pasás este cierre? (dd/mm/aaaa)\nSe mueven el arqueo, los premios pagados, otros ingresos/valores y la nota.',dmy(addDays(D,1)));if(f===null)return;
     const nf=parseDmy(f);if(!nf||nf===D){alert('Fecha inválida');return}if(isClosed(ag,monthOf(nf))){alert('Ese mes está cerrado');return}
     if(ag.cierres[nf]){if(ag.cierres[nf].snap){alert(`El ${dmy(nf)} ya está cerrado. Reabrilo primero.`);return}if(!confirm(`El ${dmy(nf)} ya tiene datos de cierre. ¿Reemplazarlos con los del ${dmy(D)}?`))return}
@@ -969,7 +978,7 @@ const ACT={
     (ag.premios[S.premDate]=ag.premios[S.premDate]||[]).push({b:bo,s:sn||n,c,m,pf:null});save();toast(`Agregado: Corr. ${c} · ${fmt(m)}`);S.peFocus=n;render()},
   pdep:()=>{const ag=AG(),pym=prevYm(monthOf(S.date));const monto=pnum($('#pdepm').value);if(!confirm(`¿Registrar el depósito del PNC de ${mesTxt(pym)} por ${gs(monto)} el ${dmy(S.date)}?`))return;ag.pncDep[pym]={fecha:S.date,monto,nota:$('#pdepn').value.trim()};save();toast('Depósito registrado');render()},
   pdepdel:()=>{const ag=AG(),pym=prevYm(monthOf(S.date));if(confirm('¿Anular el depósito registrado?')){delete ag.pncDep[pym];save();render()}},
-  cobayer:()=>{S.date=addDays(iso(new Date()),-1);render()},
+  cobayer:()=>{S.date=fechaCaja();render()},
   cobparse:()=>{const P=parseCobros($('#cobpaste').value);if(!P.rows.length){alert('No se reconocieron filas de cobros.\n\nCopiá la planilla desde el encabezado (№, Bruto, B. Quiniela…) hasta la última fila.');return}S.cobPrev=P;render()},
   cobcancel:()=>{S.cobPrev=null;render()},
   cobsave:()=>{const ag=AG(),D=S.date;if(ag.cobros[D]&&!confirm(`Ya hay cobros cargados el ${dmy(D)}. ¿Reemplazarlos?`))return;ag.cobros[D]={rows:S.cobPrev.rows,total:S.cobPrev.total||null};S.cobPrev=null;save();toast('Cobros guardados');render()},
@@ -1038,6 +1047,7 @@ const CHG={
     if(!b)d[a]=t.value;else{d[a]=d[a]||{};d[a][b]=txt||b==='ag'?t.value:(t.value.trim()===''&&b==='sdep'?null:pnum(t.value))}
     if(a==='bolt')syncBolt(S.date);save();render()},
   dl:t=>{const d=depEnsure(S.date);const x=d[t.dataset.l][+t.dataset.i];const f=t.dataset.f;x[f]=f==='monto'?pnum(t.value):t.value;save();render()},
+  lagset:t=>{DB.settings.lag=t.checked;save();S.date=fechaCaja();render()},
   agname:t=>{AG().name=t.value.trim()||AG().name;save();render()},
   rkbase:t=>{AG().rk.base=ppct(t.value);save();render()},
   capct:t=>{AG().comAgPct=ppct(t.value);save();render()},
@@ -1118,7 +1128,7 @@ document.addEventListener('dragover',e=>{if(S.tab!=='premios')return;e.preventDe
 document.addEventListener('dragleave',e=>{const z=$('#pdrop');if(z&&!e.relatedTarget)z.classList.remove('on')});
 document.addEventListener('drop',async e=>{if(S.tab!=='premios')return;e.preventDefault();const z=$('#pdrop');if(z)z.classList.remove('on');const f=e.dataTransfer.files[0];if(!f)return;try{await handlePremFile(f)}catch(err){alert('No se pudo leer el archivo: '+err.message)}});
 document.addEventListener('change',e=>{if(e.target.id==='pall')document.querySelectorAll('.psel').forEach(c=>c.checked=e.target.checked)});
-load();render();autoSnap();
+load();S.date=fechaCaja();render();autoSnap();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
