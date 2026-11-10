@@ -116,6 +116,7 @@ input.money.big{width:100%;font-size:20px;font-weight:700;padding:9px 12px}
 .ctot{display:flex;justify-content:space-between;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warnbg);color:var(--warn);font-weight:800;font-size:16px}
 [data-theme="dark"] .btn:not(.ghost):not(.danger):not(.x),[data-theme="dark"] .tabsmall button.on{color:#06281a}
 #printArea{display:none}
+body.pdfmode #printArea{position:fixed;left:0;top:0;z-index:-1}
 .depg{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 @media(max-width:1650px){.depg{grid-template-columns:minmax(0,1fr)}}
 .depg input.num{width:50px!important}
@@ -157,7 +158,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.24</small></h1>
+  <h1>CRz Caja Diaria<small>versión 1.25</small></h1>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
@@ -426,6 +427,7 @@ function doRender(){
   if(S.tab==='gastos'&&$('#gpf'))maskDate($('#gpf'),()=>{});
   if(S.focusId){const el=document.getElementById(S.focusId);S.focusId=null;if(el){el.focus({preventScroll:true});if(el.select)el.select()}}
   if(S.scrollTo){const el=document.getElementById(S.scrollTo);S.scrollTo=null;if(el)el.scrollIntoView({block:'nearest'})}
+  if(S.tab==='resumen'&&$('#rdes')){maskDate($('#rdes'),v=>{S.rDesde=v;render()});maskDate($('#rhas'),v=>{S.rHasta=v;render()})}
   if(S.tab==='ajustes'){fillSnaps();if(DB.settings.gClientId)GD.loadLib().catch(()=>{})}
   if(S.tab==='gastos'||S.tab==='deudas'){const f=$('#fmonto');if(f&&S.focusMonto){f.focus();S.focusMonto=false}}
 }
@@ -500,6 +502,35 @@ function cierrePrintHtml(ag,D){const cc=cierreCalc(ag,D),c=cc.c||{};const ym=mon
   ${((ag.premDia||{})[D]||[]).length?`<h4>TICKETS DE PREMIOS PAGADOS DEL DÍA</h4><table><tr class="h"><td class="l">#</td><td class="l">Corredor</td><td class="l">Sorteo</td><td class="l">N° de ticket</td><td>Premio</td></tr>${ag.premDia[D].map((x,i)=>`<tr><td class="l">${i+1}</td><td class="l">${esc(x.c)}</td><td class="l">${x.s}</td><td class="l">${esc(x.b)}</td><td>${f(x.m)}</td></tr>`).join('')}<tr class="t"><td class="l" colspan="4">TOTAL</td><td>${f(ag.premDia[D].reduce((s,x)=>s+(x.m||0),0))}</td></tr></table>`:''}
   <h4>DETALLE DE GASTOS DEL MES (hasta el ${dm(D)})${cc.frozen&&gsum!==cc.gastosMes?' · detalle actual':''}</h4><table><tr class="h"><td class="l">Fecha</td><td class="l">Categoría</td><td class="l">Descripción</td><td>Monto</td></tr>${G.map(g=>`<tr><td class="l">${dm(g.fecha)}</td><td class="l">${esc(g.cat)}</td><td class="l">${esc(g.desc||'')}</td><td>${f(g.monto)}</td></tr>`).join('')||'<tr><td class="l" colspan="4">Sin gastos</td></tr>'}<tr class="t"><td class="l" colspan="3">TOTAL GASTOS</td><td>${f(gsum)}</td></tr></table>
   <div class="firmas"><div>Responsable de caja</div><div>Auditor</div></div></div>`}
+const SHEETS={
+  res:()=>{const ag=AG(),P=periodo();return{pages:[resPrintHtml()],title:`Resumen ${ag.name} · ${P.lbl}`,fname:`Resumen_${ag.code}_${P.a}_${P.b}.pdf`}},
+  cierre:()=>{const ag=AG();return{pages:[cierrePrintHtml(ag,S.date)],title:`Cierre de caja ${ag.name} · ${dmy(S.date)}`,fname:`Cierre_${ag.code}_${S.date}.pdf`}},
+  dep:()=>({pages:[depPrintHtml(S.date)],title:`Depósitos y conteo · ${dmy(S.date)}`,fname:`Depositos_${S.date}.pdf`}),
+  prem:()=>{const ag=AG();return{pages:[premResPrintHtml()],title:`Resumen de premios (PNC) ${ag.name} · al ${dmy(S.date)}`,fname:`Premios_PNC_${ag.code}_${S.date}.pdf`}}};
+function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)&&loadScript.ok[src])return res();const sc=document.createElement('script');sc.src=src;sc.onload=()=>{loadScript.ok[src]=1;res()};sc.onerror=()=>rej(new Error('No se pudo cargar una librería (¿sin internet?)'));document.head.appendChild(sc)})}loadScript.ok={};
+async function sheetPdf(pagesHtml){await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  const pa=$('#printArea');pa.innerHTML=pagesHtml.map(h=>`<div class="page"><div class="pin">${h}</div></div>`).join('');document.body.classList.add('printing','pdfmode');
+  try{const pgs=[...pa.querySelectorAll('.page')];pgs.forEach(pg=>{const pin=pg.querySelector('.pin');const cs=getComputedStyle(pg);const avail=pg.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);if(pin.scrollHeight>avail)pin.style.zoom=(avail/pin.scrollHeight*0.99).toFixed(3)});
+    const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    for(let i=0;i<pgs.length;i++){const cv=await html2canvas(pgs[i],{scale:2,backgroundColor:'#ffffff'});if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,210,297)}
+    return pdf.output('blob')}finally{document.body.classList.remove('printing','pdfmode');pa.innerHTML=''}}
+const GM={token:null,exp:0,async auth(){if(this.token&&Date.now()<this.exp)return this.token;await GD.loadLib();
+  return new Promise((res,rej)=>{const tc=google.accounts.oauth2.initTokenClient({client_id:DB.settings.gClientId,scope:'https://www.googleapis.com/auth/gmail.send',callback:r=>{if(r.error)return rej(new Error(r.error_description||r.error));this.token=r.access_token;this.exp=Date.now()+(r.expires_in-60)*1000;res(this.token)},error_callback:e=>rej(new Error(e.message||e.type||'Acceso cancelado'))});tc.requestAccessToken()})}};
+const blobB64=b=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(String(fr.result).split(',')[1]);fr.readAsDataURL(b)});
+const b64u=t=>btoa(unescape(encodeURIComponent(t)));
+async function gmailSend(token,to,subject,body,fname,blob){const bd='crz'+Date.now();const att=(await blobB64(blob)).replace(/.{76}/g,'$&\r\n');
+  const mime=[`To: ${to}`,`Subject: =?UTF-8?B?${b64u(subject)}?=`,'MIME-Version: 1.0',`Content-Type: multipart/mixed; boundary="${bd}"`,'',`--${bd}`,'Content-Type: text/plain; charset="UTF-8"','Content-Transfer-Encoding: base64','',b64u(body),`--${bd}`,`Content-Type: application/pdf; name="${fname}"`,`Content-Disposition: attachment; filename="${fname}"`,'Content-Transfer-Encoding: base64','',att,`--${bd}--`,''].join('\r\n');
+  const raw=btoa(mime).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({raw})});
+  if(!r.ok){const t=await r.text();throw new Error(/has not been used|disabled/i.test(t)?'La "Gmail API" no está activada en tu proyecto de Google Cloud.':'Gmail respondió '+r.status+': '+t.slice(0,160))}}
+async function sendSheet(k){const sh=SHEETS[k]();const to=prompt(`Enviar "${sh.title}" a (separá varios correos con coma):`,DB.settings.mailTo||'');if(to===null)return;const dest=to.trim();if(!dest){toast('Escribí al menos un correo');return}DB.settings.mailTo=dest;save();
+  const body=`${sh.title}\n\nSe adjunta la hoja en PDF.\n\nEnviado desde CRz Caja Diaria.`;let token=null;
+  if(DB.settings.gClientId){try{token=await GM.auth()}catch(e){token=null;if(!confirm('No se pudo conectar con Gmail ('+e.message+').\n\n¿Descargar el PDF y abrir tu correo para adjuntarlo a mano?'))return}}
+  toast('Generando PDF…');let blob;try{blob=await sheetPdf(sh.pages)}catch(e){alert('No se pudo generar el PDF: '+e.message);return}
+  if(token){try{await gmailSend(token,dest,sh.title,body,sh.fname,blob);toast('Correo enviado a '+dest);return}catch(e){if(!confirm('No se pudo enviar con Gmail: '+e.message+'\n\n¿Descargar el PDF y abrir tu correo para adjuntarlo a mano?'))return}}
+  const file=new File([blob],sh.fname,{type:'application/pdf'});
+  if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:sh.title,text:body});return}catch(e){if(e.name==='AbortError')return}}
+  download(sh.fname,blob,'application/pdf');setTimeout(()=>{location.href=`mailto:${encodeURIComponent(dest)}?subject=${encodeURIComponent(sh.title)}&body=${encodeURIComponent(body+'\n\n(Adjuntá el PDF que se descargó: '+sh.fname+')')}`},600);toast('PDF descargado · adjuntalo en el correo')}
 function printCobros(which){const ag=AG(),D=S.date;let pages=cobPages(ag,D);if(which)pages=pages.filter(p=>p.n===which);if(!pages.length){toast('No hay cobros cargados para imprimir');return}
   const pa=$('#printArea');pa.innerHTML=pages.map(p=>pageHtml(p,D)).join('');document.body.classList.add('printing');
   pa.querySelectorAll('.page').forEach(pg=>{const pin=pg.querySelector('.pin');const cs=getComputedStyle(pg);const avail=pg.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);if(pin.scrollHeight>avail)pin.style.zoom=(avail/pin.scrollHeight*0.99).toFixed(3)});
@@ -596,7 +627,7 @@ function vDepositos(){
    </tbody><tfoot><tr><td class="tl">TOTAL DEPÓSITOS</td><td colspan="2"></td><td>${fmt(C.total)}</td><td colspan="2"></td></tr>
    <tr><td class="tl">Efectivo contado</td><td colspan="2"></td><td>${fmt(C.efe)}</td><td colspan="2"></td></tr>
    <tr><td class="tl">${C.dif>0?'FALTA EFECTIVO':C.dif<0?'EFECTIVO DE MÁS':'DIFERENCIA'}</td><td colspan="2"></td><td class="${C.dif===0?'pos':'neg'}">${fmt(Math.abs(C.dif))}</td><td colspan="2"></td></tr></tfoot></table></div>
-   <div class="row" style="margin-top:10px"><label style="flex:1">Nota<input data-c="dv" data-f="nota" value="${esc(d.nota||'')}" placeholder="Observaciones"></label><button class="btn" data-a="dprint" style="align-self:flex-end">🖨 Imprimir</button></div></div></div>`;
+   <div class="row" style="margin-top:10px"><label style="flex:1">Nota<input data-c="dv" data-f="nota" value="${esc(d.nota||'')}" placeholder="Observaciones"></label><button class="btn" data-a="dprint" style="align-self:flex-end">🖨 Imprimir</button><button class="btn ghost" data-a="smail" data-k="dep" style="align-self:flex-end">📧 Enviar por mail</button></div></div></div>`;
   // historial
   const ym=monthOf(D);const ds=Object.keys(DB.depositos).filter(x=>x.startsWith(ym)).sort();
   h+=`<div class="card"><h2>Depósitos de ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Villa Elisa</th><th>San Antonio</th><th>Otros</th><th>Total depósitos</th><th>Efectivo contado</th><th>Diferencia</th></tr></thead><tbody>${ds.map(x=>{const c=depCalc(x);return`<tr class="click ${x===D?'sel':''}" data-a="goto" data-d="${x}"><td>${dowOf(x).slice(0,3)} ${dmy(x)}</td><td>${fmt(c.VE.neto)}</td><td>${fmt(c.SA.neto)}</td><td>${fmt(c.total-c.VE.neto-c.SA.neto)}</td><td><b>${fmt(c.total)}</b></td><td>${fmt(c.efe)}</td><td class="${c.dif===0?'pos':'neg'}">${fmt(c.dif)}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin depósitos guardados este mes</td></tr>'}</tbody></table></div></div>`;
@@ -707,6 +738,7 @@ function vPremios(){
   const resMes=k=>{const rows=[];const dim=daysInMonth(k);let T=0,Pg=0;for(let i=1;i<=dim;i++){const d=k+'-'+pad(i);const L=ag.premios[d]||[];if(!L.length)continue;const t=L.reduce((s,x)=>s+x.m,0),pg=L.filter(isPaid).reduce((s,x)=>s+x.m,0);T+=t;Pg+=pg;rows.push(`<tr class="click ${d===PD?'sel':''}" data-a="pgoto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(t)}</td><td>${fmt(pg)}</td><td class="${t-pg?'neg':''}">${fmt(t-pg)}</td></tr>`)}
     return`<div class="tw"><table><thead><tr><th>Fecha</th><th>Total premios</th><th>Pagados</th><th>No pagados</th></tr></thead><tfoot><tr><td>Total</td><td>${fmt(T)}</td><td>${fmt(Pg)}</td><td>${fmt(T-Pg)}</td></tr></tfoot><tbody>${rows.join('')||'<tr><td colspan="4" class="empty">Sin premios</td></tr>'}</tbody></table></div>`};
   const dep=ag.pncDep[pym];
+  h+=`<div class="row" style="justify-content:space-between;margin:6px 0 8px"><span class="sectitle" style="margin:0">Resúmenes de ${mesTxt(pym)} y ${mesTxt(ym)}</span>${sheetBtns('prem')}</div>`;
   h+=`<div class="grid2"><div class="card"><h2>Resumen ${mesTxt(ym)}</h2>${resMes(ym)}</div><div class="card"><h2>Resumen ${mesTxt(pym)}</h2>${resMes(pym)}
    <h3>Depósito del PNC de ${mesTxt(pym)}</h3>${dep?`<div class="alert ok">Depositado el <b>${dmy(dep.fecha)}</b>: <b>${gs(dep.monto)}</b>${dep.nota?' · '+esc(dep.nota):''}. Desde esa fecha deja de sumar en el cierre; si alguien cobra un premio de ese mes, se registra en Gastos como "${PCAT}". <button class="btn sm ghost" data-a="pdepdel">Anular depósito</button></div>`:
    `<div class="row"><label>Saldo a depositar al ${dm(D)}<input id="pdepm" class="money" inputmode="numeric" value="${fmt(P.pend)}"></label><label style="flex:1">Nota<input id="pdepn" placeholder="Ej.: boleta de depósito N°"></label><button class="btn" data-a="pdep" style="align-self:flex-end">Registrar depósito el ${dm(D)}</button></div><p class="note">Normalmente entre el 16 y el 20. El monto es el saldo sin cobrar de ${mesTxt(pym)} a la fecha de arriba.</p>`}</div></div>`;
@@ -714,38 +746,58 @@ function vPremios(){
 }
 
 /* ====================== RESUMEN ====================== */
+function periodo(){const D=S.date,p=S.rper||'dia';
+  if(p==='dia')return{p,a:D,b:D,lbl:`${dowOf(D)} ${dmy(D)}`};
+  if(p==='semana'){const dw=(fromIso(D).getDay()+6)%7;const a=addDays(D,-dw),b=addDays(a,6);return{p,a,b,lbl:`Semana del ${dm(a)} al ${dmy(b)}`}}
+  if(p==='mes'){const ym=monthOf(D);return{p,a:ym+'-01',b:ym+'-'+pad(daysInMonth(ym)),lbl:mesTxt(ym)}}
+  let a=S.rDesde||monthOf(D)+'-01',b=S.rHasta||D;if(a>b)[a,b]=[b,a];return{p,a,b,lbl:`Del ${dmy(a)} al ${dmy(b)}`}}
+function resCalc(ag,a,b){const R={bruto:0,com:0,gastos:0,premPag:0,premCob:0,premCobN:0,tr:0,trN:0,prods:{},gcat:{},cobs:{},rows:[],nCierres:0,nFrozen:0,difSum:0};
+  for(let d=a;d<=b;d=addDays(d,1)){const v=ag.ventas[d];const t=dayTotals(v);if(v&&v.items)for(const[p,it]of Object.entries(v.items)){const o=R.prods[p]=R.prods[p]||{bruto:0,com:0};o.bruto+=it.bruto||0;o.com+=it.com||0}
+    const G=ag.gastos.filter(g=>g.fecha===d);const gt=sumL(G);G.forEach(g=>R.gcat[g.cat]=(R.gcat[g.cat]||0)+g.monto);
+    const hasC=!!ag.cierres[d]||((ag.premDia||{})[d]||[]).length>0;const cc=hasC?cierreCalc(ag,d):null;
+    const rd=(ag.rend||{})[d]||{};let pc=0,pn=0,tr=0,tn=0;for(const[k,r]of Object.entries(rd)){const o=R.cobs[k]=R.cobs[k]||{pr:0,prN:0,tr:0,trN:0};o.pr+=sumM(r.pr);o.prN+=(r.pr||[]).length;o.tr+=sumM(r.tr);o.trN+=(r.tr||[]).length;pc+=sumM(r.pr);pn+=(r.pr||[]).length;tr+=sumM(r.tr);tn+=(r.tr||[]).length}
+    const pp=cc?cc.premios:0;R.bruto+=t.bruto;R.com+=t.com;R.gastos+=gt;R.premPag+=pp;R.premCob+=pc;R.premCobN+=pn;R.tr+=tr;R.trN+=tn;
+    if(cc){R.nCierres++;R.difSum+=cc.dif;if(cc.frozen)R.nFrozen++}
+    if(t.bruto||gt||cc||pc||tr)R.rows.push({d,bruto:t.bruto,com:t.com,gastos:gt,pp,pc,tr,dif:cc?cc.dif:null,frozen:cc&&cc.frozen})}
+  R.deu=deudaTotal(ag,b);const ym=monthOf(b);R.pncA=hasPrem(ag,ym)?pncCalc(ag,ym,b,false).saldo:0;R.pncP=hasPrem(ag,prevYm(ym))?pncCalc(ag,prevYm(ym),b,false).saldo:0;return R}
+function sheetBtns(k){return`<div class="row noprint" style="justify-content:flex-end;gap:8px"><button class="btn ghost" data-a="sprint" data-k="${k}">🖨 Imprimir</button><button class="btn ghost" data-a="smail" data-k="${k}">📧 Enviar por mail</button></div>`}
 function vResumen(){
-  const ag=AG(),D=S.date,ym=monthOf(D);
-  const dt=dayTotals(ag.ventas[D]),cc=cierreCalc(ag,D),gDia=sumGastos(ag,D,D),gMes=sumGastos(ag,ym+'-01',D);
-  const mt=monthTotals(ag,ym,D),mc=metasCalc(ag,ym);
-  const q=qOf(ag.ventas[D]);
-  let h=`<div class="sectitle">Día ${dmy(D)}</div><div class="kpis">`+
-    kpi('Ventas brutas',gs(dt.bruto),q?`Quiniela ${gs(q.bruto)}`:'Sin ventas cargadas')+
-    kpi('Comisión agencia',gs(dt.com))+
-    kpi('Premios pagados',gs(cc.c.premios||0),'Se cuenta como efectivo')+
-    kpi('Gastos del día',gs(gDia))+
-    kpi('Efectivo en caja',gs(cc.aq.t),`Billetes ${gs(cc.aq.b)}`)+
-    kpi('Cierre (prueba)',cc.exists?gs(cc.dif):'—',cc.exists?(cc.dif>=0?'A favor':'Déficit'):'Sin cierre cargado',cc.exists?(cc.dif>=0?'pos':'neg'):'mut')+
-  `</div><div class="sectitle">Acumulado ${mesTxt(ym)} hasta el ${dm(D)}</div><div class="kpis">`+
-    kpi('Ventas brutas del mes',gs(mt.bruto),`${mt.days} días cargados`)+
-    kpi('Comisión agencia del mes',gs(mt.com))+
-    kpi('Gastos del mes',gs(gMes))+
-    kpi('Resultado (comisión − gastos)',gs(mt.com-gMes),'',mt.com-gMes>=0?'pos':'neg')+
-    kpi('Deudas de corredores',gs(cc.deu),'Saldo abierto')+(cc.saldoPrev?kpi('Saldo del mes anterior',gs(cc.saldoPrev),'Arrastrado'):'')+
-    kpi('Quiniela del mes',gs(mc.rec),mc.next?`Falta ${gs(mc.falta)} para meta ${fmt(mc.next.meta)}`:(mc.reached>=0?'Meta máxima alcanzada':''))+
-  `</div>`;
-  // gráfico diario
-  const dim=daysInMonth(ym);let mx=1;const vals=[];
-  for(let d=1;d<=dim;d++){const k=ym+'-'+pad(d);const t=dayTotals(ag.ventas[k]).bruto;vals.push([k,t]);mx=Math.max(mx,t)}
-  h+=`<div class="card"><h2>Ventas brutas por día · ${mesTxt(ym)}</h2><div class="bars">${vals.map(([k,t])=>`<div class="b ${k===D?'on':''}" style="height:${Math.max(t/mx*100,1)}%" title="${dmy(k)}: ${gs(t)}" data-a="goto" data-d="${k}"></div>`).join('')}</div><div class="barl">${vals.map(([k])=>`<span>${+k.slice(8)}</span>`).join('')}</div></div>`;
-  // productos del mes
-  const prods=orderedProds(ag,Object.keys(mt.prods)).filter(p=>mt.prods[p].bruto||mt.prods[p].com);
-  h+=`<div class="grid2"><div class="card"><h2>Comisiones del mes por producto</h2><div class="tw"><table><thead><tr><th>Producto</th><th>Venta bruta</th><th>%</th><th>Comisión agencia</th></tr></thead><tbody>${prods.map(p=>`<tr><td>${esc(p)}</td><td>${fmt(mt.prods[p].bruto)}</td><td>${pf(pctOf(ag,p))}%</td><td>${fmt(mt.prods[p].com)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sin ventas este mes</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(mt.bruto)}</td><td></td><td>${fmt(mt.com)}</td></tr></tfoot></table></div></div>`;
-  // gastos por categoría
-  const gc={};ag.gastos.filter(g=>g.fecha>=ym+'-01'&&g.fecha<=D).forEach(g=>gc[g.cat]=(gc[g.cat]||0)+g.monto);
-  h+=`<div class="card"><h2>Gastos del mes por categoría</h2><div class="tw"><table><thead><tr><th>Categoría</th><th>Monto</th><th>% de comisión</th></tr></thead><tbody>${Object.entries(gc).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<tr><td>${esc(c)}</td><td>${fmt(v)}</td><td>${mt.com?pctTxt(v/mt.com):'—'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Sin gastos este mes</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(gMes)}</td><td>${mt.com?pctTxt(gMes/mt.com):''}</td></tr></tfoot></table></div></div></div>`;
+  const ag=AG(),P=periodo(),R=resCalc(ag,P.a,P.b);
+  const segs=[['dia','Día'],['semana','Semana'],['mes','Mes'],['rango','Rango']].map(([k,l])=>`<button class="${P.p===k?'on':''}" data-a="rper" data-k="${k}">${l}</button>`).join('');
+  let h=`<div class="card"><div class="row" style="gap:12px"><span class="tabsmall">${segs}</span>
+    ${P.p==='rango'?`<label class="row" style="font-size:12px;color:var(--muted)">Desde <input id="rdes" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(P.a)}"></label><label class="row" style="font-size:12px;color:var(--muted)">Hasta <input id="rhas" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(P.b)}"></label>`:`<button class="btn sm ghost" data-a="rstep" data-k="-1">◀ Anterior</button><b>${esc(P.lbl)}</b><button class="btn sm ghost" data-a="rstep" data-k="1">Siguiente ▶</button>`}
+    <span style="flex:1"></span>${sheetBtns('res')}</div></div>`;
+  h+=`<div class="sectitle">${esc(ag.name)} · ${esc(P.lbl)}</div><div class="kpis">`+
+    kpi('Ventas brutas',gs(R.bruto),R.rows.length>1?`${R.rows.filter(r=>r.bruto).length} días con ventas`:'')+
+    kpi('Comisión agencia',gs(R.com))+kpi('Gastos',gs(R.gastos))+kpi('Resultado (comisión − gastos)',gs(R.com-R.gastos),'',R.com-R.gastos>=0?'pos':'neg')+
+    kpi('Premios traídos por cobradores',gs(R.premCob),`${R.premCobN} premios`)+kpi('Transferencias',gs(R.tr),`${R.trN} transferencias`)+
+    kpi('Premios pagados (cierres)',gs(R.premPag))+
+    kpi('Cierres del período',R.nCierres?gs(R.difSum):'—',R.nCierres?`${R.nCierres} cierres · ${R.nFrozen} cerrados · suma de diferencias`:'Sin cierres',R.nCierres?(R.difSum>=0?'pos':'neg'):'mut')+
+    kpi(`Deudas al ${dm(P.b)}`,gs(R.deu))+kpi(`PNC al ${dm(P.b)}`,gs(R.pncA+R.pncP),`${mesTxt(monthOf(P.b)).split(' ')[0]} ${fmt(R.pncA)} · ${mesTxt(prevYm(monthOf(P.b))).split(' ')[0]} ${fmt(R.pncP)}`)+`</div>`;
+  if(P.a!==P.b){const mx=Math.max(1,...R.rows.map(r=>r.bruto));const days=[];for(let d=P.a;d<=P.b;d=addDays(d,1))days.push(d);
+    if(days.length<=62)h+=`<div class="card"><h2>Ventas brutas por día</h2><div class="bars">${days.map(d=>{const r=R.rows.find(x=>x.d===d);const t=r?r.bruto:0;return`<div class="b ${d===S.date?'on':''}" style="height:${Math.max(t/mx*100,1)}%" title="${dmy(d)}: ${gs(t)}" data-a="goto" data-d="${d}"></div>`}).join('')}</div><div class="barl">${days.map(d=>`<span>${days.length>16?(+d.slice(8)%2?+d.slice(8):''):+d.slice(8)}</span>`).join('')}</div></div>`;
+    h+=`<div class="card"><h2>Detalle por día</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ventas brutas</th><th>Comisión</th><th>Gastos</th><th>Premios cobradores</th><th>Transferencias</th><th>Premios pagados</th><th>Diferencia cierre</th></tr></thead><tbody>${R.rows.map(r=>`<tr class="click" data-a="rgo" data-d="${r.d}"><td>${dowOf(r.d).slice(0,3)} ${dmy(r.d)}</td><td>${fmt(r.bruto)}</td><td>${fmt(r.com)}</td><td>${fmt(r.gastos)}</td><td>${fmt(r.pc)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.pp)}</td><td class="${r.dif==null?'mut':r.dif>=0?'pos':'neg'}">${r.dif==null?'—':fmt(r.dif)}${r.frozen?' 🔒':''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin datos en este período</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.bruto)}</td><td>${fmt(R.com)}</td><td>${fmt(R.gastos)}</td><td>${fmt(R.premCob)}</td><td>${fmt(R.tr)}</td><td>${fmt(R.premPag)}</td><td>${R.nCierres?fmt(R.difSum):''}</td></tr></tfoot></table></div></div>`}
+  const prods=orderedProds(ag,Object.keys(R.prods)).filter(p=>R.prods[p].bruto||R.prods[p].com);
+  h+=`<div class="grid2"><div class="card"><h2>Ventas y comisiones por producto</h2><div class="tw"><table><thead><tr><th>Producto</th><th>Venta bruta</th><th>%</th><th>Comisión</th></tr></thead><tbody>${prods.map(p=>`<tr><td>${esc(p)}</td><td>${fmt(R.prods[p].bruto)}</td><td>${pf(pctOf(ag,p))}%</td><td>${fmt(R.prods[p].com)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sin ventas</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.bruto)}</td><td></td><td>${fmt(R.com)}</td></tr></tfoot></table></div></div>
+   <div class="card"><h2>Gastos por categoría</h2><div class="tw"><table><thead><tr><th>Categoría</th><th>Monto</th><th>% de comisión</th></tr></thead><tbody>${Object.entries(R.gcat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<tr><td>${esc(c)}</td><td>${fmt(v)}</td><td>${R.com?pctTxt(v/R.com):'—'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Sin gastos</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.gastos)}</td><td>${R.com?pctTxt(R.gastos/R.com):''}</td></tr></tfoot></table></div></div></div>`;
+  const ck=Object.keys(R.cobs);if(ck.length)h+=`<div class="card"><h2>Premios y transferencias por cobrador</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th>Premios</th><th>Cant.</th><th>Transferencias</th><th>Cant.</th></tr></thead><tbody>${ck.map(k=>`<tr><td>${esc(k)}</td><td>${fmt(R.cobs[k].pr)}</td><td>${R.cobs[k].prN}</td><td>${fmt(R.cobs[k].tr)}</td><td>${R.cobs[k].trN}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.premCob)}</td><td>${R.premCobN}</td><td>${fmt(R.tr)}</td><td>${R.trN}</td></tr></tfoot></table></div></div>`;
   return h;
 }
+function resPrintHtml(){const ag=AG(),P=periodo(),R=resCalc(ag,P.a,P.b),f=v=>fmt(v);const row=(k,v,b)=>`<tr${b?' class="t"':''}><td class="l">${k}</td><td>${v}</td></tr>`;
+  const prods=orderedProds(ag,Object.keys(R.prods)).filter(p=>R.prods[p].bruto||R.prods[p].com);
+  return`<div class="pdoc"><div class="ph"><div><div class="pt">RESUMEN</div><div>${esc(ag.name)}</div></div><div style="text-align:right"><div class="pt">${esc(P.lbl)}</div><div>Impreso el ${new Date().toLocaleString('es-PY')}</div></div></div>
+  <div class="g2"><div><h4>TOTALES</h4><table>${row('Ventas brutas',f(R.bruto))+row('Comisión agencia',f(R.com))+row('Gastos',f(R.gastos))+row('Resultado (comisión − gastos)',f(R.com-R.gastos),1)}</table></div>
+  <div><h4>CONTROL</h4><table>${row(`Premios traídos por cobradores (${R.premCobN})`,f(R.premCob))+row(`Transferencias (${R.trN})`,f(R.tr))+row('Premios pagados (cierres)',f(R.premPag))+row(`Cierres (${R.nCierres}, ${R.nFrozen} cerrados) · suma de diferencias`,R.nCierres?f(R.difSum):'—')+row(`Deudas de corredores al ${dm(P.b)}`,f(R.deu))+row(`PNC al ${dm(P.b)}`,f(R.pncA+R.pncP))}</table></div></div>
+  ${P.a!==P.b?`<h4>DETALLE POR DÍA</h4><table><tr class="h"><td class="l">Fecha</td><td>Ventas</td><td>Comisión</td><td>Gastos</td><td>Prem. cobr.</td><td>Transf.</td><td>Prem. pag.</td><td>Dif. cierre</td></tr>${R.rows.map(r=>`<tr><td class="l">${dowOf(r.d).slice(0,3)} ${dm(r.d)}</td><td>${f(r.bruto)}</td><td>${f(r.com)}</td><td>${f(r.gastos)}</td><td>${f(r.pc)}</td><td>${f(r.tr)}</td><td>${f(r.pp)}</td><td>${r.dif==null?'—':f(r.dif)}</td></tr>`).join('')}<tr class="t"><td class="l">TOTAL</td><td>${f(R.bruto)}</td><td>${f(R.com)}</td><td>${f(R.gastos)}</td><td>${f(R.premCob)}</td><td>${f(R.tr)}</td><td>${f(R.premPag)}</td><td>${R.nCierres?f(R.difSum):''}</td></tr></table>`:''}
+  <div class="g2"><div><h4>VENTAS Y COMISIONES POR PRODUCTO</h4><table><tr class="h"><td class="l">Producto</td><td>Bruto</td><td>Comisión</td></tr>${prods.map(p=>`<tr><td class="l">${esc(p)}</td><td>${f(R.prods[p].bruto)}</td><td>${f(R.prods[p].com)}</td></tr>`).join('')}<tr class="t"><td class="l">TOTAL</td><td>${f(R.bruto)}</td><td>${f(R.com)}</td></tr></table></div>
+  <div><h4>GASTOS POR CATEGORÍA</h4><table><tr class="h"><td class="l">Categoría</td><td>Monto</td></tr>${Object.entries(R.gcat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<tr><td class="l">${esc(c)}</td><td>${f(v)}</td></tr>`).join('')}<tr class="t"><td class="l">TOTAL</td><td>${f(R.gastos)}</td></tr></table>
+  ${Object.keys(R.cobs).length?`<h4>COBRADORES</h4><table><tr class="h"><td class="l">Cobrador</td><td>Premios</td><td>Transf.</td></tr>${Object.entries(R.cobs).map(([k,o])=>`<tr><td class="l">${esc(k)}</td><td>${f(o.pr)}</td><td>${f(o.tr)}</td></tr>`).join('')}</table>`:''}</div></div>
+  <div class="firmas"><div>Responsable</div><div>Auditor</div></div></div>`}
+function premResPrintHtml(){const ag=AG(),D=S.date,ym=monthOf(D),pym=prevYm(ym),f=v=>fmt(v);const isPaid=x=>x.pf&&x.pf<=D;
+  const tab=k=>{let T=0,Pg=0;const rows=[];for(let i=1;i<=daysInMonth(k);i++){const d=k+'-'+pad(i);const L=ag.premios[d]||[];if(!L.length)continue;const t=L.reduce((s,x)=>s+x.m,0),pg=L.filter(isPaid).reduce((s,x)=>s+x.m,0);T+=t;Pg+=pg;rows.push(`<tr><td class="l">${dm(d)}</td><td>${f(t)}</td><td>${f(pg)}</td><td>${f(t-pg)}</td></tr>`)}
+    const dp=ag.pncDep[k];return`<h4>RESUMEN ${mesTxt(k).toUpperCase()}</h4><table><tr class="h"><td class="l">Fecha</td><td>Total premios</td><td>Pagados</td><td>No pagados</td></tr>${rows.join('')||'<tr><td class="l" colspan="4">Sin premios</td></tr>'}<tr class="t"><td class="l">TOTAL</td><td>${f(T)}</td><td>${f(Pg)}</td><td>${f(T-Pg)}</td></tr></table>${dp?`<div class="nota" style="margin-top:6pt">Depósito PNC: ${f(dp.monto)} el ${dmy(dp.fecha)}${dp.nota?' · '+esc(dp.nota):''}</div>`:''}`};
+  return`<div class="pdoc"><div class="ph"><div><div class="pt">PREMIOS · RESUMEN PNC</div><div>${esc(ag.name)}</div></div><div style="text-align:right"><div class="pt">al ${dmy(D)}</div><div>Impreso el ${new Date().toLocaleString('es-PY')}</div></div></div>
+  <div class="g2" style="align-items:start"><div>${tab(pym)}</div><div>${tab(ym)}</div></div><div class="firmas"><div>Responsable</div><div>Auditor</div></div></div>`}
 function orderedProds(ag,keys){const ks=new Set(keys);const out=ag.products.map(p=>p.name).filter(n=>ks.has(n));keys.forEach(k=>{if(!out.includes(k))out.push(k)});return out}
 
 /* ====================== VENTAS ====================== */
@@ -836,7 +888,7 @@ function vCierreDia(){
    <tr class="pentry"><td></td><td><input id="pdc" class="num pd-in" inputmode="numeric" placeholder="Corr."></td><td><select id="pds" class="pd-in">${SORTEOS.map(n=>`<option>${n}</option>`).join('')}</select></td><td class="tl"><input id="pdb" class="pd-in" style="width:190px" placeholder="A-1110537014001"></td><td><input id="pdm" class="money pd-in" inputmode="numeric" placeholder="0"></td><td><button class="btn sm" data-a="pdadd">Agregar</button></td></tr></tbody>
    <tfoot><tr><td colspan="4">Total · ${L.length} ticket(s)</td><td>${fmt(L.reduce((s,x)=>s+(x.m||0),0))}</td><td></td></tr></tfoot></table></div><p class="note">Corredor → Enter → sorteo → Enter → ticket → Enter → premio → Enter. Si no cargás tickets, podés escribir el total a mano en Egresos.</p></div>`;}
   h+=`<div class="card"><h2>Resultado del ${dmy(D)}</h2><div class="dif ${cc.dif>=0?'pos':'neg'}">${cc.dif>=0?'Diferencia a favor':'Déficit'}: ${gs(Math.abs(cc.dif))}</div>
-   <div class="row" style="margin-top:10px"><label style="flex:1">Nota del día<input data-c="cf" data-k="nota" data-t="txt" data-keep value="${esc(c.nota||'')}" placeholder="Observaciones"></label>${cc.frozen?`<button class="btn ghost" data-a="cunfreeze" data-keep style="align-self:flex-end">Reabrir día</button>`:`<button class="btn" data-a="cfreeze" style="align-self:flex-end">🔒 Cerrar el día</button>`}<button class="btn ghost" data-a="cprint" data-keep style="align-self:flex-end">🖨 Imprimir cierre</button>${cc.exists&&!cc.frozen?`<button class="btn sm ghost" data-a="cmove" style="align-self:flex-end">Pasar este cierre a otra fecha</button><button class="btn sm danger" data-a="cdel" style="align-self:flex-end">Borrar cierre del día</button>`:''}</div></div>`;
+   <div class="row" style="margin-top:10px"><label style="flex:1">Nota del día<input data-c="cf" data-k="nota" data-t="txt" data-keep value="${esc(c.nota||'')}" placeholder="Observaciones"></label>${cc.frozen?`<button class="btn ghost" data-a="cunfreeze" data-keep style="align-self:flex-end">Reabrir día</button>`:`<button class="btn" data-a="cfreeze" style="align-self:flex-end">🔒 Cerrar el día</button>`}<button class="btn ghost" data-a="cprint" data-keep style="align-self:flex-end">🖨 Imprimir cierre</button><button class="btn ghost" data-a="smail" data-k="cierre" data-keep style="align-self:flex-end">📧 Enviar por mail</button>${cc.exists&&!cc.frozen?`<button class="btn sm ghost" data-a="cmove" style="align-self:flex-end">Pasar este cierre a otra fecha</button><button class="btn sm danger" data-a="cdel" style="align-self:flex-end">Borrar cierre del día</button>`:''}</div></div>`;
   // tabla mensual
   const dates=Object.keys(ag.cierres).filter(d=>d.startsWith(ym)).sort();
   h+=`<div class="card"><h2>Cierres de ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ingresos</th><th>Egresos</th><th>Premios</th><th>Efectivo</th><th>Diferencia</th><th class="tl">Nota</th></tr></thead><tbody>${dates.map(d=>{const x=cierreCalc(ag,d);return`<tr class="click ${d===D?'sel':''}" data-a="goto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(x.ing)}</td><td>${fmt(x.egr)}</td><td>${fmt(x.c.premios||0)}</td><td>${fmt(x.aq.t)}</td><td class="${x.dif>=0?'pos':'neg'}"><b>${fmt(x.dif)}</b></td><td class="tl mut">${esc(x.c.nota||'')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin cierres este mes</td></tr>'}</tbody></table></div></div>`;
@@ -925,6 +977,8 @@ function vAjustes(){
   <div class="grid2"><div class="card"><h2>Comisión RK de cobradores</h2><div class="row"><label>Tasa base %<input class="pct" data-c="rkbase" value="${pf(ag.rk.base,3)}"></label></div><h3>Escalones (meta de agencia → tasa)</h3><div class="tw"><table><thead><tr><th>Meta agencia desde</th><th class="tl">Tasa %</th><th></th></tr></thead><tbody>${rowsList(ag.rk.tiers,'ltier',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="ltier" style="margin-top:8px">+ Escalón</button><p class="note">La meta individual de cada cobrador = meta de agencia × su participación.</p></div>
   <div class="card"><h2>Escala de metas de la agencia</h2><div class="tw"><table><thead><tr><th>Meta desde</th><th class="tl">%</th><th></th></tr></thead><tbody>${rowsList(ag.escala,'lesc',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lesc" style="margin-top:8px">+ Meta</button>
   <div class="row" style="margin-top:12px"><label>Comisión agencia Quiniela %<input class="pct" data-c="capct" value="${pf(ag.comAgPct,3)}"></label><label>Sueldos + gastos %<input class="pct" data-c="sgpct" value="${pf(ag.sueldosPct,3)}"></label></div></div></div>
+  <div class="card"><h2>Correo</h2><div class="row"><label style="flex:1">Destinatarios por defecto (separados por coma)<input data-c="mailset" value="${esc(DB.settings.mailTo||'')}" placeholder="auditor@ejemplo.com"></label></div>
+  <p class="note">Los botones <b>📧 Enviar por mail</b> mandan la hoja en PDF. Si cargaste el ID de cliente de Google (sección Google Drive) y activaste la <b>Gmail API</b> en tu proyecto de Google Cloud, se envía directo desde tu Gmail. Si no, la app descarga el PDF y abre tu programa de correo para que lo adjuntes.</p></div>
   <div class="card"><h2>Fecha de trabajo</h2><label class="row" style="gap:8px"><input type="checkbox" data-c="lagset" ${lagOn()?'checked':''}> Trabajar con un día de retraso (la app arranca en la fecha de ayer; los lunes queda en el domingo, que junta sábado y domingo)</label><p class="note">Todo lo que se registra (ventas, cobros, premios pagados, deudas, gastos, depósitos y cierre) queda con la fecha de arriba.</p></div>
   <div class="card"><h2>Zona peligrosa</h2><button class="btn danger" data-a="reset">Borrar todos los datos de ${esc(ag.name)}</button> <span class="note">Descargá un backup antes.</span></div>`;
   return h;
@@ -981,6 +1035,11 @@ const ACT={
   dclr:()=>{if(!confirm('¿Poner en cero el conteo de efectivo de este día?'))return;const d=depEnsure(S.date);d.counts=[{},{},{},{},{}];save();render()},
   dsecren:b=>{const id=+b.dataset.i;const cur=DEP_SEC().find(x=>x.id===id);const n=prompt('Nombre de esta columna de conteo',cur?cur.n:'');if(n&&n.trim()){const o={};DEP_SEC().forEach(x=>o[x.id]=x.n);o[id]=n.trim();DB.settings.depSec=o;save();render()}},
   dprint:()=>printPages([depPrintHtml(S.date)]),
+  sprint:b=>printPages(SHEETS[b.dataset.k]().pages),
+  smail:b=>sendSheet(b.dataset.k),
+  rper:b=>{S.rper=b.dataset.k;if(S.rper==='rango'&&!S.rDesde){S.rDesde=monthOf(S.date)+'-01';S.rHasta=S.date}render()},
+  rstep:b=>{const n=+b.dataset.k,p=S.rper||'dia';if(p==='dia')S.date=addDays(S.date,n);else if(p==='semana')S.date=addDays(S.date,7*n);else{const[y,m]=monthOf(S.date).split('-').map(Number);const dt=new Date(y,m-1+n,1);S.date=iso(dt)}render()},
+  rgo:b=>{S.date=b.dataset.d;S.rper='dia';render();scrollTo(0,0)},
   cprint:()=>printPages([cierrePrintHtml(AG(),S.date)]),
   lagfix:()=>{const ag=AG(),D=S.date,T=iso(new Date());if(!confirm(`¿Pasar al ${dmy(D)} todas las deudas/pagos, premios pagados y gastos que quedaron con fecha ${dmy(T)} en ${ag.name}?`))return;let n=0;
     ag.deudas.forEach(x=>{if(x.fecha===T){x.fecha=D;n++}});allPrem(ag).forEach(([,x])=>{if(x.pf===T){x.pf=D;n++}});ag.gastos.forEach(g=>{if(g.fecha===T){g.fecha=D;n++}});
@@ -1107,6 +1166,7 @@ const CHG={
     if(!b)d[a]=t.value;else{d[a]=d[a]||{};d[a][b]=txt||b==='ag'?t.value:(t.value.trim()===''&&b==='sdep'?null:pnum(t.value))}
     if(a==='bolt')syncBolt(S.date);save();render()},
   dl:t=>{const d=depEnsure(S.date);const x=d[t.dataset.l][+t.dataset.i];const f=t.dataset.f;x[f]=f==='monto'?pnum(t.value):t.value;save();render()},
+  mailset:t=>{DB.settings.mailTo=t.value.trim();save()},
   lagset:t=>{DB.settings.lag=t.checked;save();S.date=fechaCaja();render()},
   agname:t=>{AG().name=t.value.trim()||AG().name;save();render()},
   rkbase:t=>{AG().rk.base=ppct(t.value);save();render()},
