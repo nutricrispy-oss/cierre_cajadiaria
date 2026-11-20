@@ -186,9 +186,9 @@ body.printing #printArea{display:block;position:absolute;left:-10000px;top:0}
 .page{width:210mm;height:297mm;padding:7mm 7mm 6mm;box-sizing:border-box;overflow:hidden;background:#fff;color:#000;break-after:page;page-break-after:always}
 .page:last-child{break-after:auto;page-break-after:auto}
 table.rend{border-collapse:collapse;width:100%;table-layout:fixed;font:10pt Arial,Helvetica,sans-serif;color:#000;background:#fff;font-variant-numeric:normal}
-table.rend td,table.rend th{border:0.75pt solid #000;padding:0 3pt;height:14pt;line-height:13pt;text-align:right;white-space:nowrap;overflow:hidden;background:#fff;color:#000;position:static;font-size:10pt}
-table.rend th{font-weight:bold;text-align:center;font-size:8.5pt;padding:0 1pt}
-table.rend td.lb{font-weight:bold;text-align:left;font-size:8.5pt;padding:0 2pt}
+table.rend td,table.rend th{border:0.75pt solid #000;padding:0 2pt;height:14pt;line-height:13pt;text-align:right;white-space:nowrap;overflow:hidden;background:#fff;color:#000;position:static;font-size:9.5pt}
+table.rend th{font-weight:bold;text-align:center;font-size:8pt;padding:1pt 1pt;white-space:normal;line-height:9pt;height:auto;vertical-align:middle;text-transform:none;letter-spacing:0}
+table.rend td.lb{font-weight:bold;text-align:left;font-size:7.8pt;padding:0 1pt;letter-spacing:-.1pt}
 table.rend td.c{text-align:center}table.rend td.n{border:none}table.rend td.b{font-weight:bold}table.rend td.l{text-align:left}
 table.rend tr.gap td{border:none;height:14pt}
 .rendwrap{background:#fff;padding:10px;border-radius:8px;border:1px solid var(--line);overflow-x:auto;margin-bottom:12px}
@@ -210,7 +210,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <div class="brand"><img src="icon-192.png" alt="" width="38" height="38"><h1>CRz Caja Diaria<small>versión 1.29</small></h1></div>
+  <div class="brand"><img src="icon-192.png" alt="" width="38" height="38"><h1>CRz Caja Diaria<small>versión 1.30</small></h1></div>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" id="themebtn" data-a="theme" title="Modo claro / oscuro" aria-label="Cambiar entre modo claro y oscuro"></button>
@@ -494,12 +494,12 @@ const money=(c,val,extra='')=>`<input class="money" inputmode="numeric" data-c="
 
 /* ====================== COBROS / RENDICIONES ====================== */
 const COB_DEF=['№','Bruto','B. Quiniela','C. Quiniela','B. Billetaje','C. Billetaje','B. Tigo','C. Tigo','B. Personal','C. Personal','B. Claro','C. Claro','M. Más Efectivo','C. Más Efectivo','B.Raspadita','C.Raspadita','M. Raspa Incentivo','M. Raspa Credito','R. Prestamos','M. Recarga QW','C. Recarga QW','M. Retiro QW','C. Megaloto','M. Megaloto','C. MegalotoQR','M. MegalotoQR','C. Telebingo','M. Telebingo','M. Ria','C. Ria','Neto'];
-const COB_COLS=[['quin','B. Quiniela'],['bill','B. Billetaje'],['tigo','B. Tigo'],['pers','B. Personal'],['claro','B. Claro'],['rasp','B.Raspadita'],['prest','R. Prestamos'],['neto','Neto']];
+const COB_COLS=[['quin','B. Quiniela'],['bill','B. Billetaje'],['tigo','B. Tigo'],['pers','B. Personal'],['claro','B. Claro'],['rasp','B.Raspadita'],['prest','R. Prestamos'],['retqw','M. Retiro QW'],['neto','Neto']];
 const hk=x=>norm(x).replace(/\s+/g,'');
-const COB_KEYS={n:['№','n','no','nº','n°','n.','nro','corredor','numerocorredor'],bruto:['bruto'],quin:['b.quiniela'],bill:['b.billetaje'],tigo:['b.tigo'],pers:['b.personal'],claro:['b.claro'],rasp:['b.raspadita'],prest:['r.prestamos'],neto:['neto']};
+const COB_KEYS={n:['№','n','no','nº','n°','n.','nro','corredor','numerocorredor'],bruto:['bruto'],quin:['b.quiniela'],bill:['b.billetaje'],tigo:['b.tigo'],pers:['b.personal'],claro:['b.claro'],rasp:['b.raspadita'],prest:['r.prestamos'],retqw:['m.retiroqw','retiroqw','m.retiro'],neto:['neto']};
 const isNumCell=c=>/^-?[\d.,]+$/.test(c)||c==='-';
 function cobMap(hdr){const H=hdr.map(hk);const m={};for(const[k,al]of Object.entries(COB_KEYS)){const i=H.findIndex(h=>al.includes(h));m[k]=i}if(m.n<0)m.n=0;return m}
-function cobRow(cells,m){const g=k=>m[k]>=0&&cells[m[k]]!==undefined?pnum(cells[m[k]]):0;const o={n:String(pnum(cells[m.n]))};for(const k of['bruto','quin','bill','tigo','pers','claro','rasp','prest','neto'])o[k]=g(k);return o}
+function cobRow(cells,m){const g=k=>m[k]>=0&&cells[m[k]]!==undefined?pnum(cells[m[k]]):0;const o={n:String(pnum(cells[m.n]))};for(const k of['bruto','quin','bill','tigo','pers','claro','rasp','prest','retqw','neto'])o[k]=g(k);return o}
 function parseCobros(text){
   const lines=String(text).replace(/\r/g,'').replace(/\u00a0/g,' ').split('\n');
   let hdr=null,rows=[],total=null,raw=[];
@@ -531,10 +531,10 @@ function rendBlock(alias,D,rows){
   const f=v=>fmt(v);const dd=fromIso(D);const fecha=dd.getDate()+'/'+(dd.getMonth()+1)+'/'+dd.getFullYear();
   let h=`<tr><th>№</th>${COB_COLS.map(([,t])=>`<th>${t}</th>`).join('')}<th>${esc(alias)}</th></tr>`;
   rows.forEach((r,i)=>{h+=`<tr><td class="c">${esc(r.n)}</td>${COB_COLS.map(([k])=>`<td>${f(r[k])}</td>`).join('')}${i===0?`<td class="c">${fecha}</td>`:'<td class="n"></td>'}</tr>`});
-  h+=`<tr><td class="n"></td>${COB_COLS.map(([k])=>`<td class="b">${f(sumK(rows,k))}</td>`).join('')}<td class="n"></td></tr><tr class="gap"><td colspan="10"></td></tr>`;
+  h+=`<tr><td class="n"></td>${COB_COLS.map(([k])=>`<td class="b">${f(sumK(rows,k))}</td>`).join('')}<td class="n"></td></tr><tr class="gap"><td colspan="11"></td></tr>`;
   const L=['ADELANTOS','BILLETES','MONEDAS','PREMIOS','PAGARES','TOTAL','PAGADOS','RESULTADO'];
-  L.forEach((l,i)=>{const side=i<=6;h+=`<tr><td class="n"></td><td class="lb">${l}</td><td></td><td class="n"></td>${side?`<td class="lb">${i===0?'DEUDAS':i===6?'TOTAL':''}</td><td></td>`:'<td class="n"></td><td class="n"></td>'}<td class="n"></td>${side?`<td class="lb">${i===0?'Pagos':i===6?'TOTAL':''}</td><td></td>`:'<td class="n"></td><td class="n"></td>'}<td class="n"></td></tr>`});
-  return`<table class="rend"><colgroup><col style="width:5.5%">${'<col style="width:10.4%">'.repeat(8)}<col style="width:11.3%"></colgroup>${h}</table>`;
+  L.forEach((l,i)=>{const side=i<=6;h+=`<tr><td class="n"></td><td class="lb">${l}</td><td></td><td class="n"></td>${side?`<td class="lb">${i===0?'DEUDAS':i===6?'TOTAL':''}</td><td></td>`:'<td class="n"></td><td class="n"></td>'}<td class="n"></td>${side?`<td class="lb">${i===0?'Pagos':i===6?'TOTAL':''}</td><td></td>`:'<td class="n"></td><td class="n"></td>'}<td class="n"></td><td class="n"></td></tr>`});
+  return`<table class="rend"><colgroup><col style="width:4.5%">${'<col style="width:9.5%">'.repeat(COB_COLS.length)}<col style="width:10%"></colgroup>${h}</table>`;
 }
 function cobPages(ag,D){const v=ag.cobros[D];if(!v)return[];const g=cobGroups(ag,v.rows);const pages={};
   for(const c of ag.cobradores){if(!g[c.name].length)continue;const h=hojaOf(ag,c);(pages[h]=pages[h]||[]).push({alias:aliasOf(ag,c),name:c.name,rows:g[c.name]})}
@@ -602,7 +602,7 @@ function vCobros(){
   <p class="note" style="margin-top:0">Copiá la <b>Planilla de Cobros</b> del TDPbiz (o la hoja COBROS de tu Excel) desde el encabezado "№ · Bruto · B. Quiniela…" hasta la última fila, y pegala acá. La app arranca siempre en la <b>fecha de caja</b> (ayer): es la que sale impresa en la hoja. Los lunes queda la fecha del <b>domingo</b> y la planilla trae sábado y domingo juntos.</p>
   <textarea id="cobpaste" placeholder="№	Bruto	B. Quiniela	C. Quiniela	…	Neto"></textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="cobparse">Procesar</button></div>`;
   if(S.cobPrev){const P=S.cobPrev;const g=cobGroups(ag,P.rows);
-    h+=`<h3>Vista previa · ${P.rows.length} corredores · se guardará en el ${dmy(D)}</h3><div class="tw"><table><thead><tr><th>Cobrador</th><th>Corredores</th><th>B. Quiniela</th><th>Neto</th></tr></thead><tbody>${ag.cobradores.filter(c=>g[c.name].length).map(c=>`<tr><td>${esc(c.name)}</td><td>${g[c.name].length}</td><td>${fmt(sumK(g[c.name],'quin'))}</td><td>${fmt(sumK(g[c.name],'neto'))}</td></tr>`).join('')}${g.__SIN.length?`<tr><td><span class="badge warn">Sin asignar</span> ${g.__SIN.map(r=>r.n).join(', ')}</td><td>${g.__SIN.length}</td><td>${fmt(sumK(g.__SIN,'quin'))}</td><td>${fmt(sumK(g.__SIN,'neto'))}</td></tr>`:''}</tbody><tfoot><tr><td>Total</td><td>${P.rows.length}</td><td>${fmt(sumK(P.rows,'quin'))}</td><td>${fmt(sumK(P.rows,'neto'))}</td></tr></tfoot></table></div>`;
+    h+=`<h3>Vista previa · ${P.rows.length} corredores · se guardará en el ${dmy(D)}</h3><div class="tw"><table><thead><tr><th>Cobrador</th><th>Corredores</th><th>B. Quiniela</th><th>M. Retiro QW</th><th>Neto</th></tr></thead><tbody>${ag.cobradores.filter(c=>g[c.name].length).map(c=>`<tr><td>${esc(c.name)}</td><td>${g[c.name].length}</td><td>${fmt(sumK(g[c.name],'quin'))}</td><td>${fmt(sumK(g[c.name],'retqw'))}</td><td>${fmt(sumK(g[c.name],'neto'))}</td></tr>`).join('')}${g.__SIN.length?`<tr><td><span class="badge warn">Sin asignar</span> ${g.__SIN.map(r=>r.n).join(', ')}</td><td>${g.__SIN.length}</td><td>${fmt(sumK(g.__SIN,'quin'))}</td><td>${fmt(sumK(g.__SIN,'retqw'))}</td><td>${fmt(sumK(g.__SIN,'neto'))}</td></tr>`:''}</tbody><tfoot><tr><td>Total</td><td>${P.rows.length}</td><td>${fmt(sumK(P.rows,'quin'))}</td><td>${fmt(sumK(P.rows,'retqw'))}</td><td>${fmt(sumK(P.rows,'neto'))}</td></tr></tfoot></table></div>`;
     if(P.total){const ok=sumK(P.rows,'neto')===P.total.neto&&sumK(P.rows,'quin')===P.total.quin;h+=ok?`<div class="alert ok" style="margin-top:8px">✓ Coincide con la fila Total de la planilla.</div>`:`<div class="alert" style="margin-top:8px">La suma no coincide con la fila Total (Neto ${fmt(P.total.neto)}). Revisá que se haya copiado todo.</div>`}
     if(P.cols.quin<0||P.cols.neto<0)h+=`<div class="alert" style="margin-top:8px">No encontré las columnas "B. Quiniela" o "Neto" en el encabezado; usé el orden estándar de la planilla.</div>`;
     h+=`<div class="row" style="margin-top:8px"><button class="btn" data-a="cobsave">Guardar en ${dmy(D)}</button><button class="btn ghost" data-a="cobcancel">Cancelar</button></div>`}
