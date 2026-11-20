@@ -210,7 +210,7 @@ table.rend tr.gap td{border:none;height:14pt}
 </head>
 <body>
 <header>
-  <div class="brand"><img src="icon-192.png" alt="" width="38" height="38"><h1>CRz Caja Diaria<small>versión 1.30</small></h1></div>
+  <div class="brand"><img src="icon-192.png" alt="" width="38" height="38"><h1>CRz Caja Diaria<small>versión 1.31</small></h1></div>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
   <button class="icobtn" id="themebtn" data-a="theme" title="Modo claro / oscuro" aria-label="Cambiar entre modo claro y oscuro"></button>
@@ -321,8 +321,8 @@ function deudaSaldos(ag,upto){
 const deudaTotal=(ag,upto)=>deudaSaldos(ag,upto).reduce((s,o)=>s+Math.max(o.saldo,0),0);
 function arqueo(c){let b=0,m=0;for(const d of BILL)b+=(c['b'+d]||0)*d;for(const d of MON)m+=(c['m'+d]||0)*d;m+=c.monedasMonto||0;return{b,m,t:b+m}}
 const sumL=a=>(a||[]).reduce((s,x)=>s+(x.monto||0),0);
-function cierreCalc(ag,D){const c=ag.cierres[D];if(c&&c.snap){const z=c.snap;return Object.assign({},z,{c,exists:true,frozen:true,pncAutoA:true,pncAutoP:true,aq:z.aq||{b:0,m:0,t:0}})}return cierreLive(ag,D)}
-function snapOf(ag,D){const L=cierreLive(ag,D);return{fecha:new Date().toISOString(),pncAct:L.pncAct,pncAnt:L.pncAnt,saldoPrev:L.saldoPrev,comMes:L.comMes,gastosMes:L.gastosMes,deu:L.deu,ger:L.ger,aq:L.aq,oi:L.oi,oe:L.oe,premios:L.premios,ing:L.ing,egr:L.egr,dif:L.dif}}
+function cierreCalc(ag,D){const c=ag.cierres[D];if(c&&c.snap){const z=Object.assign({},c.snap);if(z.ger){z.egr-=z.ger;z.dif=z.ing-z.egr;z.ger=0}return Object.assign({},z,{c,exists:true,frozen:true,pncAutoA:true,pncAutoP:true,aq:z.aq||{b:0,m:0,t:0}})}return cierreLive(ag,D)}
+function snapOf(ag,D){const L=cierreLive(ag,D);return{fecha:new Date().toISOString(),pncAct:L.pncAct,pncAnt:L.pncAnt,saldoPrev:L.saldoPrev,comMes:L.comMes,gastosMes:L.gastosMes,deu:L.deu,ger:0,aq:L.aq,oi:L.oi,oe:L.oe,premios:L.premios,ing:L.ing,egr:L.egr,dif:L.dif}}
 function resnap(z){z.ing=z.saldoPrev+z.pncAct+z.pncAnt+z.comMes+z.oi;z.dif=z.ing-z.egr}
 function cierreLive(ag,D){
   const c=ag.cierres[D]||{};const ym=monthOf(D);
@@ -334,7 +334,7 @@ function cierreLive(ag,D){
   const ing=saldoPrev+pncAct+pncAnt+comMes+oi;
   const ger=depGer(ag.code,D);
   const pdL=(ag.premDia||{})[D]||[];const premios=pdL.length?pdL.reduce((s,x)=>s+(x.m||0),0):(c.premios||0);
-  const egr=gastosMes+premios+deu+oe+ger+aq.t;
+  const egr=gastosMes+premios+deu+oe+aq.t;
   return{c,exists:!!ag.cierres[D]||pdL.length>0,premios,premAuto:pdL.length>0,ger,pncAct,pncAnt,pncAutoA:pa!==null,pncAutoP:pp!==null,saldoPrev,comMes,gastosMes,deu,aq,oi,oe,ing,egr,dif:ing-egr};
 }
 /* ---- cierre del mes ---- */
@@ -547,7 +547,7 @@ function printPages(pagesHtml){const pa=$('#printArea');pa.innerHTML=pagesHtml.m
 function cierrePrintHtml(ag,D){const cc=cierreCalc(ag,D),c=cc.c||{};const ym=monthOf(D);const f=v=>fmt(v);
   const row=(k,v,b)=>`<tr${b?' class="t"':''}><td class="l">${k}</td><td>${f(v)}</td></tr>`;
   let ing=(cc.saldoPrev?row(`Saldo del mes anterior (${mesTxt(prevYm(ym))})`,cc.saldoPrev):'')+row(`PNC ${mesTxt(ym)}`,cc.pncAct)+row(`PNC ${mesTxt(prevYm(ym))}`,cc.pncAnt)+row(`Comisiones del mes (hasta el ${dm(D)})`,cc.comMes)+(c.otrosIng||[]).map(x=>row(esc(x.desc||'Otro ingreso'),x.monto)).join('')+row('TOTAL INGRESOS',cc.ing,1);
-  let egr=row(`Gastos del mes (hasta el ${dm(D)})`,cc.gastosMes)+row('Premios pagados del día',cc.premios)+(cc.ger?row('Depósito a la gerenciadora',cc.ger):'')+row('Deudas de corredores (saldo abierto)',cc.deu)+(c.otrosEgr||[]).map(x=>row(esc(x.desc||'Otro valor'),x.monto)).join('')+row('Efectivo en caja (arqueo)',cc.aq.t)+row('TOTAL EGRESOS',cc.egr,1);
+  let egr=row(`Gastos del mes (hasta el ${dm(D)})`,cc.gastosMes)+row('Premios pagados del día',cc.premios)+row('Deudas de corredores (saldo abierto)',cc.deu)+(c.otrosEgr||[]).map(x=>row(esc(x.desc||'Otro valor'),x.monto)).join('')+row('Efectivo en caja (arqueo)',cc.aq.t)+row('TOTAL EGRESOS',cc.egr,1);
   const arq=BILL.map(d=>`<tr><td class="l">Billete ${f(d)}</td><td class="c">${c['b'+d]||0}</td><td>${f((c['b'+d]||0)*d)}</td></tr>`).join('')+`<tr class="t"><td class="l">Total billetes</td><td></td><td>${f(cc.aq.b)}</td></tr>`+MON.map(d=>`<tr><td class="l">Moneda ${f(d)}</td><td class="c">${c['m'+d]||0}</td><td>${f((c['m'+d]||0)*d)}</td></tr>`).join('')+(c.monedasMonto?`<tr><td class="l">Monedas (monto)</td><td></td><td>${f(c.monedasMonto)}</td></tr>`:'')+`<tr class="t"><td class="l">TOTAL EFECTIVO</td><td></td><td>${f(cc.aq.t)}</td></tr>`;
   const G=ag.gastos.filter(g=>g.fecha>=ym+'-01'&&g.fecha<=D).sort((a,b)=>a.fecha.localeCompare(b.fecha));const gsum=sumL(G);
   const hoyP=allPrem(ag).filter(([,x])=>x.pf===D);
@@ -680,7 +680,7 @@ function vDepositos(){
    ${one('bolt','Bolt',`<div class="note">se registra en Gastos de <select data-c="dv" data-f="bolt.ag"><option value="17" ${d.bolt.ag!=='26'?'selected':''}>Ag. 17</option><option value="26" ${d.bolt.ag==='26'?'selected':''}>Ag. 26</option></select></div>`)}
    ${one('wb','Dep WB')}${one('corpos','Corpos')}
    ${C.pnc.map(x=>`<tr><td class="tl"><b>${esc(x.desc)}</b><div class="note">desde Premios (depósito del mes anterior)</div></td><td colspan="2"></td><td><b>${fmt(x.monto)}</b></td><td class="tl">${esc(x.boleta)}</td><td></td></tr>`).join('')}
-   <tr><td class="tl" colspan="6"><b>Depósitos a la gerenciadora</b> <span class="note">(van a los egresos del cierre de esa agencia)</span> <button class="btn sm ghost" data-a="dladd" data-l="ger">+ Agregar</button></td></tr>${lst('ger',d.ger,true)}
+   <tr><td class="tl" colspan="6"><b>Depósitos a la gerenciadora</b> <span class="note">(no se suman a los egresos del cierre)</span> <button class="btn sm ghost" data-a="dladd" data-l="ger">+ Agregar</button></td></tr>${lst('ger',d.ger,true)}
    <tr><td class="tl" colspan="6"><b>Otros depósitos</b> <button class="btn sm ghost" data-a="dladd" data-l="otros">+ Agregar</button></td></tr>${lst('otros',d.otros,false)}
    </tbody><tfoot><tr><td class="tl">TOTAL DEPÓSITOS</td><td colspan="2"></td><td>${fmt(C.total)}</td><td colspan="2"></td></tr>
    <tr><td class="tl">Efectivo contado</td><td colspan="2"></td><td>${fmt(C.efe)}</td><td colspan="2"></td></tr>
@@ -934,7 +934,6 @@ function vCierreDia(){
   h+=`<div class="card"><h2>Egresos</h2><div class="lines">
     <div class="ln"><span class="k">Gastos del mes <small>(automático)</small></span><b>${fmt(cc.gastosMes)}</b></div>
     <div class="ln"><span class="k">Premios pagados del día${cc.premAuto||cc.frozen?' <small>(suma de tickets, abajo)</small>':''}</span>${cc.premAuto||cc.frozen?`<b>${fmt(cc.premios)}</b>`:money('cf',c.premios,'data-k="premios"')}</div>
-    ${cc.ger?`<div class="ln"><span class="k">Depósito a la gerenciadora <small>(desde Depósitos)</small></span><b class="click" data-a="tab" data-k="depositos">${fmt(cc.ger)}</b></div>`:''}
     <div class="ln"><span class="k">Deudas de corredores <small>(saldo al ${dm(D)})</small></span><b class="click" data-a="tab" data-k="deudas" title="Ver en Deudas (misma fecha)">${fmt(cc.deu)}</b></div>
     <div class="ln"><span class="k">Efectivo en caja <small>(arqueo)</small></span><b>${fmt(cc.aq.t)}</b></div>
     <h3>Otros valores / depósitos</h3>${list('otrosEgr',c.otrosEgr)}
