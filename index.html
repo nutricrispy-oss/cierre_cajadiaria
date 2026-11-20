@@ -5,116 +5,163 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CRz Caja Diaria</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d6b44">
+<meta name="theme-color" content="#0a3b2a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-:root{--bg:#f1f7f3;--card:#fff;--text:#14261c;--muted:#5f7568;--line:#dce9e1;--pri:#138a5a;--pri2:#e3f4ea;--ok:#15803d;--okbg:#e8f6ee;--bad:#c62828;--badbg:#fdecec;--warn:#b45309;--warnbg:#fff4e0;--head:#0d6b44;--input:#fff;--shadow:0 1px 3px rgba(20,30,50,.08)}
-[data-theme="dark"]{--bg:#0c1511;--card:#13211a;--text:#e3f1e8;--muted:#8fa99a;--line:#22382c;--pri:#3ecf8e;--pri2:#163327;--ok:#4ade80;--okbg:#12291c;--bad:#f87171;--badbg:#2e1616;--warn:#fbbf24;--warnbg:#2c2210;--head:#0b3a27;--input:#0e1a14;--shadow:none}
+:root{--bg:#f2f5f3;--card:#fff;--surface2:#f6f9f7;--text:#10201a;--muted:#56675f;--line:#e1e8e4;--line2:#cfdbd4;--pri:#0b7a50;--pri-h:#08663f;--on-pri:#fff;--pri2:#e3f3eb;--ok:#137a45;--okbg:#e5f5eb;--bad:#bf2f2a;--badbg:#fcebea;--warn:#965800;--warnbg:#fff3da;--head:#0a3b2a;--head2:#11603f;--gold:#e7b84f;--input:#fff;--shadow:0 1px 2px rgba(16,32,26,.05),0 6px 16px -8px rgba(16,32,26,.12);--shadow-lg:0 12px 32px -10px rgba(10,59,42,.28);--r:14px;--r-sm:10px;--ff:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--hh:64px;--nh:52px;--ease:cubic-bezier(.2,.7,.2,1)}
+[data-theme="dark"]{--bg:#0a110e;--card:#111b17;--surface2:#15221c;--text:#e4ede8;--muted:#95a89e;--line:#1f2e27;--line2:#2c3e35;--pri:#3ddc97;--pri-h:#62e6ae;--on-pri:#05281a;--pri2:rgba(61,220,151,.13);--ok:#4ade80;--okbg:rgba(74,222,128,.11);--bad:#f87171;--badbg:rgba(248,113,113,.13);--warn:#fbbf24;--warnbg:rgba(251,191,36,.11);--head:#07231a;--head2:#0c3a29;--input:#0d1713;--shadow:0 1px 0 rgba(255,255,255,.03) inset,0 4px 14px -8px rgba(0,0,0,.6);--shadow-lg:0 14px 34px -12px rgba(0,0,0,.7)}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{background:var(--head);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
-header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
-header h1 small{font-weight:400;opacity:.75;font-size:12px;margin-left:6px}
-.seg{display:inline-flex;background:rgba(255,255,255,.14);border-radius:9px;padding:3px;gap:2px}
-.seg button{border:0;background:transparent;color:#fff;padding:6px 12px;border-radius:7px;cursor:pointer;font-weight:600;font-size:13px}
-.seg button.on{background:#fff;color:var(--head)}
+html{-webkit-text-size-adjust:100%}
+html,body{margin:0;background:var(--bg);color:var(--text);font:400 14.5px/1.5 var(--ff);font-feature-settings:"tnum" 1,"cv11" 1;-webkit-font-smoothing:antialiased}
+body{min-height:100dvh}
+button{font-family:inherit;touch-action:manipulation}
+.ic{width:18px;height:18px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3.5px}
+.btn .ic,.badge .ic,.alert .ic{width:16px;height:16px;vertical-align:-3px}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+/* encabezado */
+header{background:linear-gradient(120deg,var(--head) 0%,var(--head2) 100%);color:#fff;padding:10px max(18px,env(safe-area-inset-right)) 10px max(18px,env(safe-area-inset-left));display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:30;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 6px 20px -12px rgba(0,0,0,.5)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand img{width:38px;height:38px;border-radius:11px;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 4px 10px -4px rgba(0,0,0,.4)}
+header h1{font-size:18px;margin:0;font-weight:800;letter-spacing:-.02em;line-height:1.15;display:flex;flex-direction:column}
+header h1 small{font-weight:500;opacity:.72;font-size:11.5px;letter-spacing:.02em;margin:0}
+.seg{display:inline-flex;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:rgba(255,255,255,.85);padding:8px 14px;min-height:36px;border-radius:9px;cursor:pointer;font-weight:650;font-size:13.5px;transition:background .15s,color .15s}
+.seg button:hover{background:rgba(255,255,255,.08);color:#fff}
+.seg button.on{background:#fff;color:var(--head);box-shadow:0 2px 8px -2px rgba(0,0,0,.3)}
 .hsp{flex:1}
-.icobtn{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:14px}
-nav{display:flex;gap:2px;background:var(--card);border-bottom:1px solid var(--line);padding:0 12px;overflow-x:auto;position:sticky;top:52px;z-index:19}
-nav button{border:0;background:none;color:var(--muted);padding:11px 14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-size:14px}
-nav button.on{color:var(--pri);border-bottom-color:var(--pri)}
-#datebar{display:flex;align-items:center;gap:8px;padding:10px 18px;flex-wrap:wrap}
-.dinput{width:120px;text-align:center;font-weight:700;font-size:15px}
-.dlabel{color:var(--muted);font-weight:600}
-main{padding:0 18px 40px;max-width:1400px;margin:0 auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
-.card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.icobtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:12px;cursor:pointer;transition:background .15s}
+.icobtn:hover{background:rgba(255,255,255,.18)}
+.icobtn .ic{width:20px;height:20px}
+/* pestañas */
+nav{display:flex;gap:4px;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);padding:7px 14px;overflow-x:auto;position:sticky;top:var(--hh);z-index:29;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:var(--muted);padding:8px 13px;min-height:38px;border-radius:10px;font-weight:600;cursor:pointer;white-space:nowrap;font-size:13.5px;transition:background .15s,color .15s}
+nav button:hover{background:var(--surface2);color:var(--text)}
+nav button.on{background:var(--pri2);color:var(--pri)}
+nav button .ic{width:17px;height:17px}
+/* barra de fecha */
+#datebar{display:flex;align-items:center;gap:8px;padding:14px 18px 12px;flex-wrap:wrap;max-width:1400px;margin:0 auto}
+#datebar .btn.ghost{border-color:var(--line2);background:var(--card);color:var(--text)}
+#datebar .btn.ghost:hover{border-color:var(--pri);color:var(--pri)}
+#datebar .btn.ico{width:38px;padding:0;justify-content:center}
+.dinput{width:132px;text-align:center;font-weight:750;font-size:16px;letter-spacing:.02em}
+.dlabel{color:var(--muted);font-weight:600;text-transform:capitalize;margin-left:4px}
+main{padding:0 18px 48px;max-width:1400px;margin:0 auto}
+/* tarjetas */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{font-size:16px;font-weight:750;letter-spacing:-.01em;margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .card h2 .sp{flex:1}
-.card h3{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow)}
-.kpi .l{font-size:12px;color:var(--muted);font-weight:600}
-.kpi .v{font-size:20px;font-weight:750;margin-top:2px;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+.card h3{font-size:11.5px;margin:16px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.kpi{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 13px;box-shadow:var(--shadow)}
+.kpi::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--pri);opacity:.75}
+.kpi .l{font-size:11.5px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:3px}
 .pos{color:var(--ok)}.neg{color:var(--bad)}.mut{color:var(--muted)}
-.sectitle{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 8px}
-input,select,textarea{font:inherit;color:var(--text);background:var(--input);border:1px solid var(--line);border-radius:8px;padding:7px 9px;outline:none}
+.sectitle{font-size:11.5px;font-weight:750;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin:22px 0 10px}
+/* campos */
+input,select,textarea{font:inherit;font-size:14.5px;color:var(--text);background:var(--input);border:1px solid var(--line2);border-radius:var(--r-sm);padding:8px 11px;min-height:38px;outline:none;transition:border-color .15s,box-shadow .15s}
+input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--pri) 40%,var(--line2))}
 input:focus,select:focus,textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri2)}
-input:disabled,select:disabled,textarea:disabled,button:disabled{opacity:.55;cursor:not-allowed}
-input.money{text-align:right;font-variant-numeric:tabular-nums;width:140px}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7}
+input:disabled,select:disabled,textarea:disabled,button:disabled{opacity:.5;cursor:not-allowed}
+td input,td select{min-height:32px;padding:5px 9px}
+input.money{text-align:right;font-variant-numeric:tabular-nums;width:140px;font-weight:600}
 input.num{width:80px;text-align:right}
 input.pct{width:80px;text-align:right}
-textarea{width:100%;min-height:110px;font-family:ui-monospace,Consolas,monospace;font-size:12px}
-.btn{border:1px solid var(--pri);background:var(--pri);color:#fff;border-radius:8px;padding:7px 13px;font-weight:600;cursor:pointer;font-size:13px;white-space:nowrap}
-.btn.ghost{background:transparent;color:var(--pri)}
-.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
-.btn.sm{padding:5px 9px;font-size:12px}
-.btn.x{border:0;background:transparent;color:var(--bad);padding:3px 7px;font-size:15px}
+textarea{width:100%;min-height:110px;font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:12.5px;line-height:1.45}
+/* botones */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--pri);background:var(--pri);color:var(--on-pri);border-radius:var(--r-sm);padding:8px 15px;min-height:38px;font-weight:650;cursor:pointer;font-size:13.5px;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,transform .1s,box-shadow .15s;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.btn:hover{background:var(--pri-h);border-color:var(--pri-h)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--pri);box-shadow:none;border-color:color-mix(in srgb,var(--pri) 45%,transparent)}
+.btn.ghost:hover{background:var(--pri2);border-color:var(--pri)}
+.btn.danger{background:transparent;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent);box-shadow:none}
+.btn.danger:hover{background:var(--badbg);border-color:var(--bad)}
+.btn.sm{padding:5px 11px;min-height:32px;font-size:12.5px;border-radius:9px}
+.btn.x{border:0;background:transparent;color:var(--muted);padding:0;width:32px;min-height:32px;font-size:15px;box-shadow:none;border-radius:8px}
+.btn.x:hover{background:var(--badbg);color:var(--bad)}
+.btn.x .ic{width:16px;height:16px;vertical-align:middle}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.row label{font-size:12px;color:var(--muted);font-weight:600;display:flex;flex-direction:column;gap:3px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-@media(max-width:1000px){.grid3,.grid2{grid-template-columns:1fr}}
-.tw{overflow-x:auto}
+.row label{font-size:12px;color:var(--muted);font-weight:650;display:flex;flex-direction:column;gap:4px;letter-spacing:.01em}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:1000px){.grid3,.grid2{grid-template-columns:minmax(0,1fr)}}
+.grid3>*,.grid2>*{min-width:0}
+/* tablas */
+.tw{overflow-x:auto;border-radius:var(--r-sm)}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
-th{font-size:12px;color:var(--muted);font-weight:700;background:var(--bg);position:sticky;top:0}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:var(--surface2);position:sticky;top:0}
+tbody tr{transition:background .12s}
+tbody tr:hover td{background:color-mix(in srgb,var(--pri2) 45%,transparent)}
 th:first-child,td:first-child,.tl{text-align:left}
-tfoot td{font-weight:750;border-top:2px solid var(--line);background:var(--bg)}
+tfoot td{font-weight:800;border-top:2px solid var(--line2);background:var(--surface2)}
 tr.click{cursor:pointer}tr.click:hover td{background:var(--pri2)}
 tr.sel td{background:var(--pri2)}
 tr.hit td{background:var(--okbg)}
-.lines .ln{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);gap:8px}
+.lines .ln{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line2);gap:8px;font-variant-numeric:tabular-nums}
 .lines .ln .k{color:var(--text)}
 .lines .ln .k small{color:var(--muted)}
-.lines .ln.tot{border-bottom:0;border-top:2px solid var(--line);font-weight:750;font-size:15px;margin-top:4px;padding-top:8px}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--pri2);color:var(--pri)}
+.lines .ln.tot{border-bottom:0;border-top:2px solid var(--line2);font-weight:800;font-size:15.5px;margin-top:4px;padding-top:10px}
+/* insignias, chips */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--pri2);color:var(--pri);letter-spacing:.01em}
 .badge.ok{background:var(--okbg);color:var(--ok)}.badge.bad{background:var(--badbg);color:var(--bad)}.badge.warn{background:var(--warnbg);color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;align-items:center;gap:4px;background:var(--pri2);color:var(--text);border-radius:20px;padding:3px 4px 3px 11px;font-size:13px}
-.chip button{border:0;background:none;color:var(--bad);cursor:pointer;font-size:14px}
-.bars{display:flex;align-items:flex-end;gap:3px;height:150px;padding-top:6px}
-.bars .b{flex:1;background:var(--pri);opacity:.55;border-radius:3px 3px 0 0;min-height:2px;cursor:pointer;position:relative}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:3px 3px 3px 12px;font-size:13px}
+.chip button{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:0;border-radius:50%;background:none;color:var(--muted);cursor:pointer}
+.chip button:hover{background:var(--badbg);color:var(--bad)}
+.chip button .ic{width:14px;height:14px}
+/* gráficos */
+.bars{display:flex;align-items:flex-end;gap:4px;height:150px;padding-top:6px}
+.bars .b{flex:1;background:var(--pri);opacity:.45;border-radius:5px 5px 2px 2px;min-height:2px;cursor:pointer;position:relative;transition:opacity .15s}
 .bars .b.on{opacity:1}
-.bars .b:hover{opacity:.85}
-.barl{display:flex;gap:3px;font-size:10px;color:var(--muted)}.barl span{flex:1;text-align:center}
-.prog{height:12px;background:var(--line);border-radius:10px;overflow:hidden;position:relative}
-.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--ok));border-radius:10px}
-.note{font-size:12px;color:var(--muted)}
-.alert{padding:9px 12px;border-radius:9px;background:var(--warnbg);color:var(--warn);font-size:13px;margin-bottom:10px}
-.alert.ok{background:var(--okbg);color:var(--ok)}
-.dif{font-size:26px;font-weight:800;text-align:center;padding:10px;border-radius:10px}
+.bars .b:hover{opacity:.8}
+.barl{display:flex;gap:4px;font-size:10px;color:var(--muted)}.barl span{flex:1;text-align:center}
+.prog{height:10px;background:var(--line);border-radius:999px;overflow:hidden;position:relative}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--ok));border-radius:999px}
+.note{font-size:12.5px;color:var(--muted)}
+.alert{display:block;padding:10px 14px;border-radius:var(--r-sm);background:var(--warnbg);color:var(--warn);font-size:13.5px;margin-bottom:12px;border:1px solid color-mix(in srgb,var(--warn) 22%,transparent)}
+.alert.ok{background:var(--okbg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 22%,transparent)}
+.dif{font-size:28px;font-weight:800;letter-spacing:-.02em;text-align:center;padding:12px;border-radius:var(--r-sm);font-variant-numeric:tabular-nums}
 .dif.pos{background:var(--okbg)}.dif.neg{background:var(--badbg)}
-.pdrop{margin-top:4px;border:2px dashed var(--line);border-radius:10px;padding:18px;text-align:center;cursor:pointer;color:var(--text)}
+.pdrop{margin-top:4px;border:2px dashed var(--line2);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
 .pdrop:hover,.pdrop.on{border-color:var(--pri);background:var(--pri2)}
-.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:12px;align-items:start}
-.scol{border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.scol .shead{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--pri2)}
+/* premios */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px;align-items:start}
+.scol{border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--card)}
+.scol .shead{display:flex;align-items:center;gap:6px;padding:9px 12px;background:var(--pri2);font-weight:650}
 .scol .shead .sp{flex:1}
-.scol table td,.scol table th{padding:4px 6px}
-.scol tr.pentry td{background:var(--bg)}
-table.xl td,table.xl th{padding:3px 6px}
-table.xl td.bol{font-size:12px;font-family:ui-monospace,Consolas,monospace}
-table.xl tr.tots td{font-weight:750;background:var(--bg);border-bottom:2px solid var(--line)}
+.scol table td,.scol table th{padding:5px 8px}
+.scol tr.pentry td{background:var(--surface2)}
+table.xl td,table.xl th{padding:4px 8px}
+table.xl td.bol{font-size:12px;font-family:ui-monospace,"SF Mono",Consolas,monospace}
+table.xl tr.tots td{font-weight:800;background:var(--surface2);border-bottom:2px solid var(--line2)}
 table.xl tr.pd td{color:var(--muted)}table.xl tr.pd td b{color:var(--muted)}
-.pbtn{border:1px solid var(--line);background:var(--card);color:var(--pri);border-radius:6px;padding:2px 8px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-width:74px;text-align:right}
+.pbtn{border:1px solid var(--line2);background:var(--card);color:var(--pri);border-radius:8px;padding:3px 9px;min-height:28px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-width:78px;text-align:right;transition:background .15s,border-color .15s}
 .pbtn:hover{border-color:var(--pri)}
 .pbtn.on{background:var(--okbg);color:var(--ok);border-color:transparent}
-.cchips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
-.cchip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:1px;min-width:150px}
-.cchip small{color:var(--muted);font-size:11px}.cchip span{font-size:12px;font-variant-numeric:tabular-nums}.cchip i{color:var(--muted);font-style:normal}
-.cchip.on{border-color:var(--pri);background:var(--pri2);box-shadow:0 0 0 2px var(--pri2)}
-.cbar{position:sticky;top:96px;z-index:15;background:var(--card);border:2px solid var(--pri);border-radius:12px;padding:12px 14px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
-.cbh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.cbh small{display:block;color:var(--muted);font-size:11px}.cbh b{font-size:16px}
-.cbt{text-align:right}.cbt span{display:block;font-size:24px;font-weight:800;color:var(--pri);font-variant-numeric:tabular-nums}.cbt small{color:var(--muted)}
-input.money.big{width:100%;font-size:20px;font-weight:700;padding:9px 12px}
-.clist .citem{display:flex;align-items:center;gap:12px;padding:7px 4px;border-bottom:1px solid var(--line)}
-.citem .n{width:30px;height:30px;border-radius:50%;background:var(--pri2);color:var(--pri);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:0 0 auto}
-.citem .m{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;min-width:120px}.citem .sp{flex:1}
+/* cobradores */
+.cchips{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.cchip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:var(--r);padding:10px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:160px;box-shadow:var(--shadow);transition:border-color .15s,background .15s}
+.cchip:hover{border-color:var(--line2)}
+.cchip small{color:var(--muted);font-size:11px;font-weight:600}.cchip span{font-size:12.5px;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:4px}.cchip i{color:var(--muted);font-style:normal}
+.cchip span .ic{width:14px;height:14px;color:var(--muted)}
+.cchip.on{border-color:var(--pri);background:var(--pri2);box-shadow:0 0 0 3px var(--pri2)}
+.cbar{position:sticky;top:calc(var(--hh) + var(--nh) + 8px);z-index:15;background:var(--card);border:1.5px solid var(--pri);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-lg)}
+.cbh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.cbh small{display:block;color:var(--muted);font-size:11px;font-weight:600}.cbh b{font-size:16px;display:inline-flex;align-items:center;gap:6px}
+.cbt{text-align:right}.cbt span{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--pri);font-variant-numeric:tabular-nums}.cbt small{color:var(--muted)}
+input.money.big{width:100%;font-size:21px;font-weight:750;padding:10px 14px;min-height:48px}
+.clist .citem{display:flex;align-items:center;gap:12px;padding:8px 6px;border-bottom:1px solid var(--line);border-radius:8px}
+.citem .n{width:32px;height:32px;border-radius:50%;background:var(--pri2);color:var(--pri);display:flex;align-items:center;justify-content:center;font-weight:750;font-size:13px;flex:0 0 auto}
+.citem .m{font-size:17px;font-weight:750;font-variant-numeric:tabular-nums;min-width:120px}.citem .sp{flex:1}
 .citem.nuevo{background:var(--okbg)}.citem.edit{background:var(--warnbg)}
-.ctot{display:flex;justify-content:space-between;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warnbg);color:var(--warn);font-weight:800;font-size:16px}
-[data-theme="dark"] .btn:not(.ghost):not(.danger):not(.x),[data-theme="dark"] .tabsmall button.on{color:#06281a}
+.ctot{display:flex;justify-content:space-between;margin-top:12px;padding:12px 14px;border-radius:var(--r-sm);background:var(--warnbg);color:var(--warn);font-weight:800;font-size:16px}
 #printArea{display:none}
 body.pdfmode #printArea{position:fixed;left:0;top:0;z-index:-1}
 .depg{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
@@ -147,21 +194,26 @@ table.rend tr.gap td{border:none;height:14pt}
 .rendwrap{background:#fff;padding:10px;border-radius:8px;border:1px solid var(--line);overflow-x:auto;margin-bottom:12px}
 .rendwrap table.rend{min-width:720px}
 @media print{body.printing>*:not(#printArea){display:none!important}body.printing #printArea{position:static}@page{size:A4 portrait;margin:0}html,body{background:#fff!important}}
-#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#18212f;color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;z-index:99}
-#toast.on{opacity:1}
-.tabsmall{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.tabsmall button{border:0;background:var(--card);color:var(--muted);padding:5px 11px;font-weight:600;cursor:pointer;font-size:12px}
-.tabsmall button.on{background:var(--pri);color:#fff}
-.empty{color:var(--muted);text-align:center;padding:18px}
+#toast{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,8px);background:#0f1f18;color:#fff;padding:11px 20px;border-radius:12px;font-weight:600;font-size:14px;opacity:0;transition:opacity .2s var(--ease),transform .2s var(--ease);pointer-events:none;z-index:99;box-shadow:0 10px 30px -8px rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.08);max-width:calc(100vw - 32px)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.tabsmall{display:inline-flex;background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.tabsmall button{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:var(--muted);padding:6px 12px;min-height:32px;border-radius:8px;font-weight:650;cursor:pointer;font-size:12.5px;transition:background .15s,color .15s}
+.tabsmall button:hover{color:var(--text)}
+.tabsmall button.on{background:var(--card);color:var(--pri);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tabsmall button .ic{width:15px;height:15px}
+.empty{color:var(--muted);text-align:center;padding:22px}
+::selection{background:color-mix(in srgb,var(--pri) 28%,transparent)}
+@media(max-width:700px){header{gap:10px;padding-top:8px;padding-bottom:8px}.hsp{display:none}.brand{flex:1}#themebtn{order:2}.seg{order:3;width:100%}.seg button{flex:1;padding:8px 6px}.lines .ln input.money{width:118px}.lines .ln{flex-wrap:wrap}.brand img{width:32px;height:32px}header h1{font-size:16px}main{padding:0 12px 40px}#datebar{padding:12px}.card{padding:14px;border-radius:12px}nav{padding:6px 10px}nav button{padding:8px 11px}input,select,textarea{font-size:16px}.sgrid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 @media print{header,nav,#datebar,.noprint{display:none!important}.card{break-inside:avoid}}
 </style>
 </head>
 <body>
 <header>
-  <h1>CRz Caja Diaria<small>versión 1.28</small></h1>
+  <div class="brand"><img src="icon-192.png" alt="" width="38" height="38"><h1>CRz Caja Diaria<small>versión 1.29</small></h1></div>
   <div class="seg" id="agsel"></div>
   <div class="hsp"></div>
-  <button class="icobtn" data-a="theme" title="Modo claro / oscuro">🌙 Tema</button>
+  <button class="icobtn" id="themebtn" data-a="theme" title="Modo claro / oscuro" aria-label="Cambiar entre modo claro y oscuro"></button>
 </header>
 <nav id="tabs"></nav>
 <div id="datebar"></div>
@@ -176,6 +228,9 @@ table.rend tr.gap td{border:none;height:14pt}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+const ICONS={dash:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',trend:'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',wallet:'<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',bank:'<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2 20 7H4z"/>',alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',sliders:'<path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M2 14h4"/><path d="M10 8h4"/><path d="M18 16h4"/>',printer:'<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/>',mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',upload:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/>',swap:'<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',pencil:'<path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',check:'<path d="M20 6 9 17l-5-5"/>',plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',left:'<path d="m15 18-6-6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',cal:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>'};
+const I=n=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||''}</svg>`;
+const TABIC={resumen:'dash',ventas:'trend',cobros:'wallet',cobradores:'users',premios:'trophy',gastos:'receipt',cierre:'lock',depositos:'bank',deudas:'alert',metas:'target',ajustes:'sliders'};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const fmt=n=>{n=Math.round(+n||0);const s=Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');return(n<0?'-':'')+s};
 const gs=n=>'₲ '+fmt(n);
@@ -297,7 +352,7 @@ function mesCalc(ag,ym){
 function vCierreMes(){
   const ag=AG(),ym=monthOf(S.date),M=mesCalc(ag,ym),inf=M.info;const nx=monthOf(addDays(M.last,1));
   let h='';
-  if(inf&&inf.cerrado)h+=`<div class="alert ok" data-keep>🔒 <b>${mesTxt(ym)} está cerrado</b> desde el ${dmy(inf.fecha)}. Saldo arrastrado a ${mesTxt(nx)}: <b>${gs(inf.saldo)}</b>. <button class="btn sm ghost" data-a="mreopen" style="margin-left:8px">Reabrir mes</button></div>`;
+  if(inf&&inf.cerrado)h+=`<div class="alert ok" data-keep>${I('lock')}<b>${mesTxt(ym)} está cerrado</b> desde el ${dmy(inf.fecha)}. Saldo arrastrado a ${mesTxt(nx)}: <b>${gs(inf.saldo)}</b>. <button class="btn sm ghost" data-a="mreopen" style="margin-left:8px">Reabrir mes</button></div>`;
   else if(M.prevOpen)h+=`<div class="alert">El mes anterior (${mesTxt(prevYm(ym))}) todavía no está cerrado, por eso no se arrastra ningún saldo a este mes.</div>`;
   h+=`<div class="sectitle">Cierre general de ${mesTxt(ym)} · ${esc(ag.name)}</div><div class="kpis">`+
     kpi('Saldo del mes anterior',gs(M.sp),M.sp?'Arrastrado':'Sin saldo arrastrado')+
@@ -412,8 +467,11 @@ function render(){if(S.defer){clearTimeout(render.t);render.t=setTimeout(()=>{co
 function doRender(){
   document.documentElement.dataset.theme=DB.settings.theme;
   $('#agsel').innerHTML=['17','26'].map(k=>`<button class="${DB.settings.agency===k?'on':''}" data-a="agency" data-k="${k}">${esc(DB.agencies[k].name)}</button>`).join('');
-  $('#tabs').innerHTML=TABS.map(([k,t])=>`<button class="${S.tab===k?'on':''}" data-a="tab" data-k="${k}">${t}</button>`).join('');
-  $('#datebar').innerHTML=`<button class="btn sm ghost" data-a="dprev" title="Día anterior">◀</button><input id="dinput" class="dinput" inputmode="numeric" maxlength="10" value="${dmy(S.date)}" title="Escribí la fecha dd/mm/aaaa"><button class="btn sm ghost" data-a="dnext" title="Día siguiente">▶</button><button class="btn sm ghost" data-a="dtoday" title="${lagOn()?'Ir a la fecha de caja (ayer)':'Ir a hoy'}">${lagOn()?'Fecha de caja':'Hoy'}</button><span class="dlabel">${dowOf(S.date)} · ${mesTxt(monthOf(S.date))}</span>${lagOn()&&S.date===fechaCaja()?' <span class="badge ok">fecha de caja</span>':lagOn()&&S.date===iso(new Date())?' <span class="badge warn">ojo: es la fecha de hoy, no la de caja</span>':''}${lagOn()&&fromIso(S.date).getDay()===0?' <span class="badge">sábado + domingo</span>':''}`;
+  $('#tabs').innerHTML=TABS.map(([k,t])=>`<button class="${S.tab===k?'on':''}" data-a="tab" data-k="${k}"${S.tab===k?' aria-current="page"':''}>${I(TABIC[k])}${t}</button>`).join('');
+  {const on=$('#tabs .on');if(on&&S._lt!==S.tab){S._lt=S.tab;try{on.scrollIntoView({inline:'center',block:'nearest'})}catch(e){}}}
+  $('#themebtn').innerHTML=I(DB.settings.theme==='dark'?'sun':'moon');
+  {const m=document.querySelector('meta[name=theme-color]');if(m)m.content=DB.settings.theme==='dark'?'#07231a':'#0a3b2a'}
+  $('#datebar').innerHTML=`<button class="btn ghost ico" data-a="dprev" title="Día anterior" aria-label="Día anterior">${I('left')}</button><input id="dinput" class="dinput" inputmode="numeric" maxlength="10" value="${dmy(S.date)}" title="Escribí la fecha dd/mm/aaaa"><button class="btn ghost ico" data-a="dnext" title="Día siguiente" aria-label="Día siguiente">${I('right')}</button><button class="btn ghost" data-a="dtoday" title="${lagOn()?'Ir a la fecha de caja (ayer)':'Ir a hoy'}">${I('cal')}${lagOn()?'Fecha de caja':'Hoy'}</button><span class="dlabel">${dowOf(S.date)} · ${mesTxt(monthOf(S.date))}</span>${lagOn()&&S.date===fechaCaja()?' <span class="badge ok">fecha de caja</span>':lagOn()&&S.date===iso(new Date())?' <span class="badge warn">ojo: es la fecha de hoy, no la de caja</span>':''}${lagOn()&&fromIso(S.date).getDay()===0?' <span class="badge">sábado + domingo</span>':''}`;
   maskDate($('#dinput'),v=>{S.date=v;render()});
   const V={resumen:vResumen,ventas:vVentas,cobros:vCobros,cobradores:vCobradores,premios:vPremios,gastos:vGastos,cierre:vCierre,depositos:vDepositos,deudas:vDeudas,metas:vMetas,ajustes:vAjustes}[S.tab];
   $('#view').innerHTML=V();
@@ -421,7 +479,7 @@ function doRender(){
     $('#view').querySelectorAll('input,select,textarea,button[data-a]').forEach(el=>{if(!el.closest('[data-keep]')&&!['cmode','goto'].includes(el.dataset.a))el.disabled=true});
   if(isClosed(AG(),monthOf(S.date))&&['ventas','cobros','gastos','cierre','deudas'].includes(S.tab)&&!(S.tab==='cierre'&&S.cmode==='mes')){
     $('#view').querySelectorAll('input,select,textarea,button[data-a]').forEach(el=>{if(!el.closest('[data-keep]')&&!['vmode','csv','cmode','dtipo'].includes(el.dataset.a)&&el.id!=='dfil')el.disabled=true});
-    $('#view').insertAdjacentHTML('afterbegin',`<div class="alert" data-keep>🔒 ${mesTxt(monthOf(S.date))} está cerrado: solo se puede consultar. <button class="btn sm ghost" data-a="cmodemes">Ver cierre del mes</button></div>`)}
+    $('#view').insertAdjacentHTML('afterbegin',`<div class="alert" data-keep>${I('lock')}${mesTxt(monthOf(S.date))} está cerrado: solo se puede consultar. <button class="btn sm ghost" data-a="cmodemes">Ver cierre del mes</button></div>`)}
   if(S.tab==='premios'&&$('#premd'))maskDate($('#premd'),v=>{S.premDate=v;S.premPrev=S.premPrev?Object.assign(S.premPrev,{}):null;render()});
   if(S.tab==='premios'&&S.peFocus){const c=document.querySelector(`.scol[data-s="${S.peFocus}"] .pe-c`);S.peFocus=null;if(c)c.focus()}
   if(S.tab==='gastos'&&$('#gpf'))maskDate($('#gpf'),()=>{});
@@ -553,7 +611,7 @@ function vCobros(){
   const g=cobGroups(ag,v.rows);const pages=cobPages(ag,D);
   h+=`<div class="kpis">${ag.cobradores.filter(c=>g[c.name].length).map(c=>kpi(esc(c.name),gs(sumK(g[c.name],'neto')),`Neto · ${g[c.name].length} corredores · Quiniela ${fmt(sumK(g[c.name],'quin'))}`)).join('')}${kpi('Total del día',gs(sumK(v.rows,'neto')),`${v.rows.length} corredores`)}</div>`;
   if(g.__SIN.length)h+=`<div class="card"><h2><span class="badge warn">Sin asignar</span> Corredores que no tienen cobrador</h2><div class="row">${g.__SIN.map(r=>`<label>Corredor ${esc(r.n)}<select data-c="cobmap" data-k="${esc(r.n)}"><option value="">Elegir…</option>${ag.cobradores.map(c=>`<option>${esc(c.name)}</option>`).join('')}</select></label>`).join('')}</div><p class="note">Al asignarlo queda guardado para los próximos días (también se edita en Ajustes).</p></div>`;
-  h+=`<div class="card"><h2>Hojas de rendición · ${dmy(D)}<span class="sp"></span>${pages.map(p=>`<button class="btn sm ghost" data-a="cobprint" data-k="${p.n}">Imprimir hoja ${p.n} (${p.blocks.map(b=>esc(b.alias)).join(' + ')})</button>`).join('')}<button class="btn" data-a="cobprint" data-k="">🖨 Imprimir todas</button><button class="btn sm danger" data-a="cobdel">Borrar día</button></h2>
+  h+=`<div class="card"><h2>Hojas de rendición · ${dmy(D)}<span class="sp"></span>${pages.map(p=>`<button class="btn sm ghost" data-a="cobprint" data-k="${p.n}">Imprimir hoja ${p.n} (${p.blocks.map(b=>esc(b.alias)).join(' + ')})</button>`).join('')}<button class="btn" data-a="cobprint" data-k="">${I('printer')}Imprimir todas</button><button class="btn sm danger" data-a="cobdel">Borrar día</button></h2>
    <p class="note" style="margin-top:0">Se imprime en A4 vertical, sin márgenes extra y ajustado para que cada hoja entre en una sola página. En la ventana de impresión dejá "Márgenes: predeterminado" y "Escala: predeterminada".</p>
    ${pages.map(p=>`<div class="note" style="margin:10px 0 4px"><b>Hoja ${p.n}</b></div>`+p.blocks.map(b=>`<div class="rendwrap">${rendBlock(b.alias,D,b.rows)}</div>`).join('')).join('')}</div>`;
   return h;
@@ -570,13 +628,13 @@ function vCobradores(){
   const D=S.date,cobs=allCobs();if(!cobs.length)return'<div class="card empty">No hay cobradores. Agregalos en Ajustes.</div>';
   if(!S.cobSel||!cobs.find(c=>cobKey(c.code,c.name)===S.cobSel))S.cobSel=cobKey(cobs[0].code,cobs[0].name);
   const sel=cobs.find(c=>cobKey(c.code,c.name)===S.cobSel);const mode=S.cobMode||'pr';const R0=rendOf(sel.code,D,sel.name);const L=R0[mode]||[];
-  const chips=cobs.map(c=>{const r=rendOf(c.code,D,c.name);const k=cobKey(c.code,c.name);return`<button class="cchip ${k===S.cobSel?'on':''}" data-a="cobsel" data-k="${esc(k)}"><small>${esc(c.ag.name)}</small><b>${esc(c.name)}</b><span>🏆 ${fmt(sumM(r.pr))} <i>(${r.pr.length})</i></span><span>📲 ${fmt(sumM(r.tr))} <i>(${r.tr.length})</i></span></button>`}).join('');
+  const chips=cobs.map(c=>{const r=rendOf(c.code,D,c.name);const k=cobKey(c.code,c.name);return`<button class="cchip ${k===S.cobSel?'on':''}" data-a="cobsel" data-k="${esc(k)}"><small>${esc(c.ag.name)}</small><b>${esc(c.name)}</b><span>${I('trophy')}${fmt(sumM(r.pr))} <i>(${r.pr.length})</i></span><span>${I('swap')}${fmt(sumM(r.tr))} <i>(${r.tr.length})</i></span></button>`}).join('');
   const tot=sumM(L),ed=S.cobEdit!=null?L.find(x=>x.id===S.cobEdit):null;
-  let h=`<div class="cchips">${chips}</div><div class="row" style="margin:6px 0 10px"><span class="tabsmall"><button class="${mode==='pr'?'on':''}" data-a="cobmode" data-k="pr">🏆 Premios</button><button class="${mode==='tr'?'on':''}" data-a="cobmode" data-k="tr">📲 Transferencias</button></span><span class="note">${dowOf(D)} ${dmy(D)}</span></div>`;
-  h+=`<div class="cbar"><div class="cbh"><div><small>${esc(sel.ag.name)}</small><b>${mode==='pr'?'🏆':'📲'} ${esc(sel.name)}</b></div><div class="cbt"><span>${gs(tot)}</span><small>${L.length} ${mode==='pr'?'premio(s)':'transferencia(s)'}</small></div></div>
-   <div class="row">${mode==='tr'?`<label>Corredor N°<input id="rcor" class="num" inputmode="numeric" value="${ed?esc(ed.c||''):''}" placeholder="N°"></label>`:''}<label style="flex:1">Monto<input id="rin" class="money big" inputmode="numeric" value="${ed?fmt(ed.m):''}" placeholder="0" autocomplete="off"></label>${mode==='tr'?`<label style="flex:1">Detalle (opcional)<input id="rnota" value="${ed?esc(ed.n||''):''}" placeholder="banco, nro…"></label>`:''}<button class="btn" data-a="radd" style="align-self:flex-end;padding:10px 18px">${ed?'✔ Guardar':'＋ Agregar'}</button>${ed?`<button class="btn ghost" data-a="rcancel" style="align-self:flex-end">Cancelar</button>`:''}</div>
+  let h=`<div class="cchips">${chips}</div><div class="row" style="margin:6px 0 10px"><span class="tabsmall"><button class="${mode==='pr'?'on':''}" data-a="cobmode" data-k="pr">${I('trophy')}Premios</button><button class="${mode==='tr'?'on':''}" data-a="cobmode" data-k="tr">${I('swap')}Transferencias</button></span><span class="note">${dowOf(D)} ${dmy(D)}</span></div>`;
+  h+=`<div class="cbar"><div class="cbh"><div><small>${esc(sel.ag.name)}</small><b>${I(mode==='pr'?'trophy':'swap')}${esc(sel.name)}</b></div><div class="cbt"><span>${gs(tot)}</span><small>${L.length} ${mode==='pr'?'premio(s)':'transferencia(s)'}</small></div></div>
+   <div class="row">${mode==='tr'?`<label>Corredor N°<input id="rcor" class="num" inputmode="numeric" value="${ed?esc(ed.c||''):''}" placeholder="N°"></label>`:''}<label style="flex:1">Monto<input id="rin" class="money big" inputmode="numeric" value="${ed?fmt(ed.m):''}" placeholder="0" autocomplete="off"></label>${mode==='tr'?`<label style="flex:1">Detalle (opcional)<input id="rnota" value="${ed?esc(ed.n||''):''}" placeholder="banco, nro…"></label>`:''}<button class="btn" data-a="radd" style="align-self:flex-end;padding:10px 18px">${ed?I('check')+'Guardar':I('plus')+'Agregar'}</button>${ed?`<button class="btn ghost" data-a="rcancel" style="align-self:flex-end">Cancelar</button>`:''}</div>
    <div class="note">${mode==='pr'?'Escribí el monto y Enter. Se guardan en el orden en que los cargás.':'Corredor → Enter → monto → Enter. El total de transferencias de cada agencia se descuenta solo en Depósitos.'}</div></div>`;
-  h+=`<div class="card"><h2>${mode==='pr'?'Premios en orden de carga':'Transferencias'} · ${esc(sel.name)}</h2><div class="clist">${L.map((x,i)=>`<div class="citem ${x.id===S.cobLast?'nuevo':''} ${x.id===S.cobEdit?'edit':''}" id="ri-${x.id}"><span class="n">${i+1}</span>${mode==='tr'?`<span class="cc">Corr. <b>${esc(x.c||'—')}</b></span>`:''}<span class="m">${gs(x.m)}</span><span class="note">${x.n?esc(x.n)+' · ':''}${x.t?new Date(x.t).toTimeString().slice(0,5):''}</span><span class="sp"></span><button class="btn x" data-a="redit" data-id="${x.id}" title="Editar" style="color:var(--pri)">✎</button><button class="btn x" data-a="rdel" data-id="${x.id}" title="Borrar">✕</button></div>`).join('')||`<div class="empty">Todavía no hay ${mode==='pr'?'premios':'transferencias'} cargados para este día.</div>`}</div>
+  h+=`<div class="card"><h2>${mode==='pr'?'Premios en orden de carga':'Transferencias'} · ${esc(sel.name)}</h2><div class="clist">${L.map((x,i)=>`<div class="citem ${x.id===S.cobLast?'nuevo':''} ${x.id===S.cobEdit?'edit':''}" id="ri-${x.id}"><span class="n">${i+1}</span>${mode==='tr'?`<span class="cc">Corr. <b>${esc(x.c||'—')}</b></span>`:''}<span class="m">${gs(x.m)}</span><span class="note">${x.n?esc(x.n)+' · ':''}${x.t?new Date(x.t).toTimeString().slice(0,5):''}</span><span class="sp"></span><button class="btn x" data-a="redit" data-id="${x.id}" title="Editar" style="color:var(--pri)">${I('pencil')}</button><button class="btn x" data-a="rdel" data-id="${x.id}" title="Borrar">${I('x')}</button></div>`).join('')||`<div class="empty">Todavía no hay ${mode==='pr'?'premios':'transferencias'} cargados para este día.</div>`}</div>
    ${L.length?`<div class="ctot"><span>TOTAL ${esc(sel.name).toUpperCase()} · ${L.length}</span><span>${gs(tot)}</span></div>`:''}</div>`;
   // totales por agencia
   h+=`<div class="grid2">${['17','26'].map(code=>{const ag=DB.agencies[code];const cs=ag.cobradores;const P=prAgencia(code,D),T=trAgencia(code,D);return`<div class="card"><h2>${esc(ag.name)} · ${dmy(D)}</h2><div class="tw"><table><thead><tr><th>Cobrador</th><th>Premios</th><th>Transferencias</th></tr></thead><tbody>${cs.map(c=>{const r=rendOf(code,D,c.name);return`<tr class="click" data-a="cobsel" data-k="${esc(cobKey(code,c.name))}"><td>${esc(c.name)}</td><td>${fmt(sumM(r.pr))} <span class="note">(${r.pr.length})</span></td><td>${fmt(sumM(r.tr))} <span class="note">(${r.tr.length})</span></td></tr>`}).join('')}</tbody><tfoot><tr><td>Total</td><td>${fmt(P.t)} <span class="note">(${P.n})</span></td><td>${fmt(T.t)} <span class="note">(${T.n})</span></td></tr></tfoot></table></div><p class="note">Las transferencias (${fmt(T.t)}) se descuentan del depósito de ${esc(ag.name)} en la pestaña Depósitos.</p></div>`}).join('')}</div>`;
@@ -616,7 +674,7 @@ function vDepositos(){
   const bol=(path,v)=>`<input data-c="dv" data-f="${path}" value="${esc(v||'')}" placeholder="N° boleta" style="width:95px">`;
   const agRow=(key,A,name)=>`<tr><td class="tl"><b>${name}</b><div class="note">${A.manual?'S. Depositar escrito a mano':A.au?`S. Depositar del ${dowOf(A.au.d).slice(0,3)} ${dm(A.au.d)}`:'Sin ventas cargadas'}</div></td><td>${money('dv',A.sd,`data-f="${key}.sdep"`)}</td><td>${A.ta.n?`<b class="click" data-a="tab" data-k="cobradores" title="Ver en Cobradores">${fmt(A.tr)}</b><div class="note">${A.ta.n} transf. de Cobradores</div>`:money('dv',A.o.transf,`data-f="${key}.transf"`)}</td><td><b>${fmt(A.neto)}</b></td><td>${bol(key+'.boleta',A.o.boleta)}</td><td></td></tr>`;
   const one=(key,name,extra='')=>`<tr><td class="tl"><b>${name}</b>${extra}</td><td colspan="2"></td><td>${money('dv',d[key].monto,`data-f="${key}.monto"`)}</td><td>${bol(key+'.boleta',d[key].boleta)}</td><td></td></tr>`;
-  const lst=(l,arr,withAg)=>(arr||[]).map((x,i)=>`<tr><td class="tl">${withAg?`<select data-c="dl" data-l="${l}" data-i="${i}" data-f="ag"><option value="17" ${x.ag==='17'?'selected':''}>Ag. 17 VE</option><option value="26" ${x.ag==='26'?'selected':''}>Ag. 26 SA</option></select>`:''} <input data-c="dl" data-l="${l}" data-i="${i}" data-f="desc" value="${esc(x.desc||'')}" placeholder="${withAg?'Concepto':'Descripción'}" style="width:${withAg?110:190}px"></td><td colspan="2"></td><td><input class="money" inputmode="numeric" data-c="dl" data-l="${l}" data-i="${i}" data-f="monto" value="${x.monto?fmt(x.monto):''}" placeholder="0"></td><td><input data-c="dl" data-l="${l}" data-i="${i}" data-f="boleta" value="${esc(x.boleta||'')}" placeholder="N° boleta" style="width:95px"></td><td><button class="btn x" data-a="dldel" data-l="${l}" data-i="${i}">✕</button></td></tr>`).join('');
+  const lst=(l,arr,withAg)=>(arr||[]).map((x,i)=>`<tr><td class="tl">${withAg?`<select data-c="dl" data-l="${l}" data-i="${i}" data-f="ag"><option value="17" ${x.ag==='17'?'selected':''}>Ag. 17 VE</option><option value="26" ${x.ag==='26'?'selected':''}>Ag. 26 SA</option></select>`:''} <input data-c="dl" data-l="${l}" data-i="${i}" data-f="desc" value="${esc(x.desc||'')}" placeholder="${withAg?'Concepto':'Descripción'}" style="width:${withAg?110:190}px"></td><td colspan="2"></td><td><input class="money" inputmode="numeric" data-c="dl" data-l="${l}" data-i="${i}" data-f="monto" value="${x.monto?fmt(x.monto):''}" placeholder="0"></td><td><input data-c="dl" data-l="${l}" data-i="${i}" data-f="boleta" value="${esc(x.boleta||'')}" placeholder="N° boleta" style="width:95px"></td><td><button class="btn x" data-a="dldel" data-l="${l}" data-i="${i}">${I('x')}</button></td></tr>`).join('');
   h+=`<div class="card depcard"><h2>Depósitos de hoy</h2><div class="tw"><table><thead><tr><th class="tl">Concepto</th><th>S. Depositar</th><th>− Transferencias</th><th>A depositar</th><th class="tl">Boleta</th><th></th></tr></thead><tbody>
    ${agRow('ve',C.VE,'Villa Elisa')}${agRow('sa',C.SA,'San Antonio')}
    ${one('bolt','Bolt',`<div class="note">se registra en Gastos de <select data-c="dv" data-f="bolt.ag"><option value="17" ${d.bolt.ag!=='26'?'selected':''}>Ag. 17</option><option value="26" ${d.bolt.ag==='26'?'selected':''}>Ag. 26</option></select></div>`)}
@@ -627,7 +685,7 @@ function vDepositos(){
    </tbody><tfoot><tr><td class="tl">TOTAL DEPÓSITOS</td><td colspan="2"></td><td>${fmt(C.total)}</td><td colspan="2"></td></tr>
    <tr><td class="tl">Efectivo contado</td><td colspan="2"></td><td>${fmt(C.efe)}</td><td colspan="2"></td></tr>
    <tr><td class="tl">${C.dif>0?'FALTA EFECTIVO':C.dif<0?'EFECTIVO DE MÁS':'DIFERENCIA'}</td><td colspan="2"></td><td class="${C.dif===0?'pos':'neg'}">${fmt(Math.abs(C.dif))}</td><td colspan="2"></td></tr></tfoot></table></div>
-   <div class="row" style="margin-top:10px"><label style="flex:1">Nota<input data-c="dv" data-f="nota" value="${esc(d.nota||'')}" placeholder="Observaciones"></label><button class="btn" data-a="dprint" style="align-self:flex-end">🖨 Imprimir</button><button class="btn ghost" data-a="smail" data-k="dep" style="align-self:flex-end">📧 Enviar por mail</button></div></div></div>`;
+   <div class="row" style="margin-top:10px"><label style="flex:1">Nota<input data-c="dv" data-f="nota" value="${esc(d.nota||'')}" placeholder="Observaciones"></label><button class="btn" data-a="dprint" style="align-self:flex-end">${I('printer')}Imprimir</button><button class="btn ghost" data-a="smail" data-k="dep" style="align-self:flex-end">${I('mail')}Enviar por mail</button></div></div></div>`;
   // historial
   const ym=monthOf(D);const ds=Object.keys(DB.depositos).filter(x=>x.startsWith(ym)).sort();
   h+=`<div class="card"><h2>Depósitos de ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Villa Elisa</th><th>San Antonio</th><th>Otros</th><th>Total depósitos</th><th>Efectivo contado</th><th>Diferencia</th></tr></thead><tbody>${ds.map(x=>{const c=depCalc(x);return`<tr class="click ${x===D?'sel':''}" data-a="goto" data-d="${x}"><td>${dowOf(x).slice(0,3)} ${dmy(x)}</td><td>${fmt(c.VE.neto)}</td><td>${fmt(c.SA.neto)}</td><td>${fmt(c.total-c.VE.neto-c.SA.neto)}</td><td><b>${fmt(c.total)}</b></td><td>${fmt(c.efe)}</td><td class="${c.dif===0?'pos':'neg'}">${fmt(c.dif)}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin depósitos guardados este mes</td></tr>'}</tbody></table></div></div>`;
@@ -715,7 +773,7 @@ function vPremios(){
     kpi(`Pagados el ${dm(D)}`,gs(hoy.reduce((s,[,x])=>s+x.m,0)),`${hoy.length} premios`)+`</div>`;
   // ---- planilla del día (formato Excel) ----
   const tot=PL.reduce((s,x)=>s+x.m,0),pg=PL.filter(isPaid).reduce((s,x)=>s+x.m,0);
-  h+=`<div class="card"><h2><button class="btn sm ghost" data-a="pdprev" title="Día anterior">◀</button><input id="premd" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(PD)}" title="Fecha del sorteo"><button class="btn sm ghost" data-a="pdnext" title="Día siguiente">▶</button> Premios del ${dowOf(PD)} ${dmy(PD)}<span class="sp"></span><button class="btn sm" data-a="pfile">📄 Cargar archivo del TDPbiz</button><button class="btn sm ghost" data-a="pimp">Importar planilla del mes</button></h2>
+  h+=`<div class="card"><h2><button class="btn sm ghost" data-a="pdprev" title="Día anterior" aria-label="Día anterior">${I('left')}</button><input id="premd" class="dinput" style="width:136px" inputmode="numeric" maxlength="10" value="${dmy(PD)}" title="Fecha del sorteo"><button class="btn sm ghost" data-a="pdnext" title="Día siguiente" aria-label="Día siguiente">${I('right')}</button> Premios del ${dowOf(PD)} ${dmy(PD)}<span class="sp"></span><button class="btn sm" data-a="pfile">${I('upload')}Cargar archivo del TDPbiz</button><button class="btn sm ghost" data-a="pimp">Importar planilla del mes</button></h2>
    <div class="row" style="gap:18px;margin-bottom:8px"><span>Total <b>${fmt(tot)}</b></span><span class="pos">Pagados <b>${fmt(pg)}</b></span><span class="${tot-pg?'neg':''}">No pagados <b>${fmt(tot-pg)}</b></span><span class="note">Tocá la casilla <b>Pagado</b> de cada premio para marcarlo como pagado el <b>${dmy(D)}</b> (la fecha de arriba). Tocála de nuevo para deshacer. También podés arrastrar el archivo del TDPbiz a esta pantalla.</span></div>`;
   if(S.premPrev){const pv=S.premPrev;h+=`<div class="alert ${pv.nuevos.length?'ok':''}">${pv.origen?esc(pv.origen)+' · ':''}<b>${pv.nuevos.length} premios nuevos · ${gs(pv.nuevos.reduce((s,x)=>s+x.m,0))}</b>${pv.rep?` · ${pv.rep} ya estaban cargados`:''} · fecha del sorteo <b>${dmy(PD)}</b>${pv.fechaArchivo&&pv.fechaArchivo!==PD?` <span class="badge warn">el archivo dice ${dmy(pv.fechaArchivo)}</span>`:''}<br>${SORTEOS.map(n=>{const L=pv.nuevos.filter(x=>x.s===n);return L.length?`Sorteo ${n}: ${L.length} · ${fmt(L.reduce((s,x)=>s+x.m,0))}`:''}).filter(Boolean).join(' &nbsp;·&nbsp; ')}</div><div class="row" style="margin-bottom:10px"><button class="btn" data-a="psave2" ${pv.nuevos.length?'':'disabled'}>Guardar en ${dmy(PD)}</button><button class="btn ghost" data-a="pcancel2">Cancelar</button></div>`}
   if(!PL.length&&!S.premPrev)h+=`<div id="pdrop" class="pdrop" data-a="pfile"><b>No hay premios cargados para el ${dmy(PD)}.</b><br>Arrastrá acá el archivo de premiados del TDPbiz (.csv o .xlsx) o tocá para elegirlo.</div>`;
@@ -723,7 +781,7 @@ function vPremios(){
   h+=`<div class="sgrid">${SORTEOS.map(n=>{const L=PL.filter(x=>x.s===n).sort((a,b)=>(+a.c)-(+b.c));if(!L.length&&!(S.peOpen||{})[n])return'';const t=L.reduce((s,x)=>s+x.m,0),p=L.filter(isPaid).reduce((s,x)=>s+x.m,0);
     return`<div class="scol" data-s="${n}"><div class="shead"><b>SORTEO ${n}</b> <span class="note">${esc(sorteoNombre(n))}</span><span class="sp"></span><button class="btn sm ghost" data-a="peopen" data-s="${n}" title="Agregar un premio a mano">+</button></div>
       <table class="xl"><thead><tr><th>Corredor</th><th class="tl">Nro. de Boleta</th><th>Premio</th><th>Pagado</th><th>No pagado</th><th></th></tr>
-      <tr class="tots"><td>Totales</td><td></td><td>${fmt(t)}</td><td>${fmt(p)}</td><td>${fmt(t-p)}</td><td></td></tr></thead><tbody>${L.map(x=>{const pd=isPaid(x);return`<tr class="${pd?'pd':''}"><td class="c"><b>${esc(x.c)}</b></td><td class="tl bol">${esc(x.b)}</td><td>${fmt(x.m)}</td><td class="pcell"><button class="pbtn ${pd?'on':''}" data-a="ptog" data-b="${PD}|${esc(x.b)}" title="${pd?(x.imp?'Pagado':'Pagado el '+dmy(x.pf))+' · tocá para deshacer':'Marcar como pagado'}">${pd?fmt(x.m):'Pagar'}</button></td><td class="${pd?'':'neg'}">${pd?0:fmt(x.m)}</td><td><button class="btn x" data-a="pdel" data-b="${PD}|${esc(x.b)}" title="Borrar premio">✕</button></td></tr>`}).join('')}
+      <tr class="tots"><td>Totales</td><td></td><td>${fmt(t)}</td><td>${fmt(p)}</td><td>${fmt(t-p)}</td><td></td></tr></thead><tbody>${L.map(x=>{const pd=isPaid(x);return`<tr class="${pd?'pd':''}"><td class="c"><b>${esc(x.c)}</b></td><td class="tl bol">${esc(x.b)}</td><td>${fmt(x.m)}</td><td class="pcell"><button class="pbtn ${pd?'on':''}" data-a="ptog" data-b="${PD}|${esc(x.b)}" title="${pd?(x.imp?'Pagado':'Pagado el '+dmy(x.pf))+' · tocá para deshacer':'Marcar como pagado'}">${pd?fmt(x.m):'Pagar'}</button></td><td class="${pd?'':'neg'}">${pd?0:fmt(x.m)}</td><td><button class="btn x" data-a="pdel" data-b="${PD}|${esc(x.b)}" title="Borrar premio">${I('x')}</button></td></tr>`}).join('')}
       ${(S.peOpen||{})[n]?`<tr class="pentry"><td><input class="num pe-c" inputmode="numeric" placeholder="Corr." style="width:56px"></td><td class="tl"><input class="pe-b" placeholder="${SLET[n]}-${n}…" style="width:100%;min-width:120px"></td><td><input class="money pe-m" inputmode="numeric" placeholder="0" style="width:90px"></td><td colspan="3"><button class="btn sm" data-a="padd2" data-s="${n}">Agregar</button></td></tr>`:''}</tbody></table></div>`}).join('')}</div></div>`;
   // ---- búsqueda / pendientes ----
   const fc=S.premCorr||'';const pend=all.filter(([d,x])=>!isPaid(x)&&d<=D&&(d.startsWith(ym)||d.startsWith(pym))&&(!fc||x.c===fc)).sort((a,b)=>a[0].localeCompare(b[0])||(+a[1].c)-(+b[1].c));
@@ -760,12 +818,12 @@ function resCalc(ag,a,b){const R={bruto:0,com:0,gastos:0,premPag:0,premCob:0,pre
     if(cc){R.nCierres++;R.difSum+=cc.dif;if(cc.frozen)R.nFrozen++}
     if(t.bruto||gt||cc||pc||tr)R.rows.push({d,bruto:t.bruto,com:t.com,gastos:gt,pp,pc,tr,dif:cc?cc.dif:null,frozen:cc&&cc.frozen})}
   R.deu=deudaTotal(ag,b);const ym=monthOf(b);R.pncA=hasPrem(ag,ym)?pncCalc(ag,ym,b,false).saldo:0;R.pncP=hasPrem(ag,prevYm(ym))?pncCalc(ag,prevYm(ym),b,false).saldo:0;return R}
-function sheetBtns(k){return`<div class="row noprint" style="justify-content:flex-end;gap:8px"><button class="btn ghost" data-a="sprint" data-k="${k}">🖨 Imprimir</button><button class="btn ghost" data-a="smail" data-k="${k}">📧 Enviar por mail</button></div>`}
+function sheetBtns(k){return`<div class="row noprint" style="justify-content:flex-end;gap:8px"><button class="btn ghost" data-a="sprint" data-k="${k}">${I('printer')}Imprimir</button><button class="btn ghost" data-a="smail" data-k="${k}">${I('mail')}Enviar por mail</button></div>`}
 function vResumen(){
   const ag=AG(),P=periodo(),R=resCalc(ag,P.a,P.b);
   const segs=[['dia','Día'],['semana','Semana'],['mes','Mes'],['rango','Rango']].map(([k,l])=>`<button class="${P.p===k?'on':''}" data-a="rper" data-k="${k}">${l}</button>`).join('');
   let h=`<div class="card"><div class="row" style="gap:12px"><span class="tabsmall">${segs}</span>
-    ${P.p==='rango'?`<label class="row" style="font-size:12px;color:var(--muted)">Desde <input id="rdes" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(P.a)}"></label><label class="row" style="font-size:12px;color:var(--muted)">Hasta <input id="rhas" class="dinput" style="width:120px" inputmode="numeric" maxlength="10" value="${dmy(P.b)}"></label>`:`<button class="btn sm ghost" data-a="rstep" data-k="-1">◀ Anterior</button><b>${esc(P.lbl)}</b><button class="btn sm ghost" data-a="rstep" data-k="1">Siguiente ▶</button>`}
+    ${P.p==='rango'?`<label class="row" style="font-size:12px;color:var(--muted)">Desde <input id="rdes" class="dinput" style="width:136px" inputmode="numeric" maxlength="10" value="${dmy(P.a)}"></label><label class="row" style="font-size:12px;color:var(--muted)">Hasta <input id="rhas" class="dinput" style="width:136px" inputmode="numeric" maxlength="10" value="${dmy(P.b)}"></label>`:`<button class="btn sm ghost" data-a="rstep" data-k="-1">${I('left')}Anterior</button><b>${esc(P.lbl)}</b><button class="btn sm ghost" data-a="rstep" data-k="1">Siguiente${I('right')}</button>`}
     <span style="flex:1"></span>${sheetBtns('res')}</div></div>`;
   h+=`<div class="sectitle">${esc(ag.name)} · ${esc(P.lbl)}</div><div class="kpis">`+
     kpi('Ventas brutas',gs(R.bruto),R.rows.length>1?`${R.rows.filter(r=>r.bruto).length} días con ventas`:'')+
@@ -776,7 +834,7 @@ function vResumen(){
     kpi(`Deudas al ${dm(P.b)}`,gs(R.deu))+kpi(`PNC al ${dm(P.b)}`,gs(R.pncA+R.pncP),`${mesTxt(monthOf(P.b)).split(' ')[0]} ${fmt(R.pncA)} · ${mesTxt(prevYm(monthOf(P.b))).split(' ')[0]} ${fmt(R.pncP)}`)+`</div>`;
   if(P.a!==P.b){const mx=Math.max(1,...R.rows.map(r=>r.bruto));const days=[];for(let d=P.a;d<=P.b;d=addDays(d,1))days.push(d);
     if(days.length<=62)h+=`<div class="card"><h2>Ventas brutas por día</h2><div class="bars">${days.map(d=>{const r=R.rows.find(x=>x.d===d);const t=r?r.bruto:0;return`<div class="b ${d===S.date?'on':''}" style="height:${Math.max(t/mx*100,1)}%" title="${dmy(d)}: ${gs(t)}" data-a="goto" data-d="${d}"></div>`}).join('')}</div><div class="barl">${days.map(d=>`<span>${days.length>16?(+d.slice(8)%2?+d.slice(8):''):+d.slice(8)}</span>`).join('')}</div></div>`;
-    h+=`<div class="card"><h2>Detalle por día</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ventas brutas</th><th>Comisión</th><th>Gastos</th><th>Premios cobradores</th><th>Transferencias</th><th>Premios pagados</th><th>Diferencia cierre</th></tr></thead><tbody>${R.rows.map(r=>`<tr class="click" data-a="rgo" data-d="${r.d}"><td>${dowOf(r.d).slice(0,3)} ${dmy(r.d)}</td><td>${fmt(r.bruto)}</td><td>${fmt(r.com)}</td><td>${fmt(r.gastos)}</td><td>${fmt(r.pc)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.pp)}</td><td class="${r.dif==null?'mut':r.dif>=0?'pos':'neg'}">${r.dif==null?'—':fmt(r.dif)}${r.frozen?' 🔒':''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin datos en este período</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.bruto)}</td><td>${fmt(R.com)}</td><td>${fmt(R.gastos)}</td><td>${fmt(R.premCob)}</td><td>${fmt(R.tr)}</td><td>${fmt(R.premPag)}</td><td>${R.nCierres?fmt(R.difSum):''}</td></tr></tfoot></table></div></div>`}
+    h+=`<div class="card"><h2>Detalle por día</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ventas brutas</th><th>Comisión</th><th>Gastos</th><th>Premios cobradores</th><th>Transferencias</th><th>Premios pagados</th><th>Diferencia cierre</th></tr></thead><tbody>${R.rows.map(r=>`<tr class="click" data-a="rgo" data-d="${r.d}"><td>${dowOf(r.d).slice(0,3)} ${dmy(r.d)}</td><td>${fmt(r.bruto)}</td><td>${fmt(r.com)}</td><td>${fmt(r.gastos)}</td><td>${fmt(r.pc)}</td><td>${fmt(r.tr)}</td><td>${fmt(r.pp)}</td><td class="${r.dif==null?'mut':r.dif>=0?'pos':'neg'}">${r.dif==null?'—':fmt(r.dif)}${r.frozen?' '+I('lock'):''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Sin datos en este período</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.bruto)}</td><td>${fmt(R.com)}</td><td>${fmt(R.gastos)}</td><td>${fmt(R.premCob)}</td><td>${fmt(R.tr)}</td><td>${fmt(R.premPag)}</td><td>${R.nCierres?fmt(R.difSum):''}</td></tr></tfoot></table></div></div>`}
   const prods=orderedProds(ag,Object.keys(R.prods)).filter(p=>R.prods[p].bruto||R.prods[p].com);
   h+=`<div class="grid2"><div class="card"><h2>Ventas y comisiones por producto</h2><div class="tw"><table><thead><tr><th>Producto</th><th>Venta bruta</th><th>%</th><th>Comisión</th></tr></thead><tbody>${prods.map(p=>`<tr><td>${esc(p)}</td><td>${fmt(R.prods[p].bruto)}</td><td>${pf(pctOf(ag,p))}%</td><td>${fmt(R.prods[p].com)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sin ventas</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.bruto)}</td><td></td><td>${fmt(R.com)}</td></tr></tfoot></table></div></div>
    <div class="card"><h2>Gastos por categoría</h2><div class="tw"><table><thead><tr><th>Categoría</th><th>Monto</th><th>% de comisión</th></tr></thead><tbody>${Object.entries(R.gcat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<tr><td>${esc(c)}</td><td>${fmt(v)}</td><td>${R.com?pctTxt(v/R.com):'—'}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Sin gastos</td></tr>'}</tbody><tfoot><tr><td>Total</td><td>${fmt(R.gastos)}</td><td>${R.com?pctTxt(R.gastos/R.com):''}</td></tr></tfoot></table></div></div></div>`;
@@ -839,11 +897,11 @@ function vGastos(){
   let h=`<div class="card"><h2>${ed?'Editar gasto':'Nuevo gasto'} · ${dmy(ed?ed.fecha:D)}</h2><div class="row">
    <label>Categoría<select id="fcat" data-c="gcat">${cats.map(c=>`<option ${(ed?ed.cat===c:S.gCat===c)?'selected':''}>${esc(c)}</option>`).join('')}<option value="__new">+ Nueva categoría…</option></select></label>
    <label style="flex:1;min-width:200px">Descripción<input id="fdesc" value="${esc(ed?ed.desc:'')}" placeholder="Opcional"></label>
-   ${(ed?ed.cat:S.gCat||cats[0])===PCAT?`<label>Corredor<input id="gpc" class="num" inputmode="numeric" value="${esc(ed&&ed.prem?ed.prem.c:'')}"></label><label>N° de ticket<input id="gpb" style="width:170px" value="${esc(ed&&ed.prem?ed.prem.b:'')}" placeholder="A-1110537014001"></label><label>Fecha del sorteo<input id="gpf" class="dinput" style="width:110px;font-weight:400;font-size:14px" inputmode="numeric" maxlength="10" value="${ed&&ed.prem&&ed.prem.f?dmy(ed.prem.f):''}" placeholder="dd/mm/aaaa"></label><label>Sorteo<select id="gps">${SORTEOS.map(n=>`<option ${ed&&ed.prem&&+ed.prem.s===n?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
+   ${(ed?ed.cat:S.gCat||cats[0])===PCAT?`<label>Corredor<input id="gpc" class="num" inputmode="numeric" value="${esc(ed&&ed.prem?ed.prem.c:'')}"></label><label>N° de ticket<input id="gpb" style="width:170px" value="${esc(ed&&ed.prem?ed.prem.b:'')}" placeholder="A-1110537014001"></label><label>Fecha del sorteo<input id="gpf" class="dinput" style="width:128px;font-weight:500;font-size:14.5px" inputmode="numeric" maxlength="10" value="${ed&&ed.prem&&ed.prem.f?dmy(ed.prem.f):''}" placeholder="dd/mm/aaaa"></label><label>Sorteo<select id="gps">${SORTEOS.map(n=>`<option ${ed&&ed.prem&&+ed.prem.s===n?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
    <label>Monto<input id="fmonto" class="money" inputmode="numeric" value="${ed?fmt(ed.monto):''}" placeholder="0"></label>
    <button class="btn" data-a="gadd" style="align-self:flex-end">${ed?'Guardar cambios':'Agregar'}</button>${ed?`<button class="btn ghost" data-a="gcancel" style="align-self:flex-end">Cancelar</button>`:''}</div></div>`;
   const day=ag.gastos.filter(g=>g.fecha===D);
-  h+=`<div class="grid2"><div class="card"><h2>Gastos del ${dmy(D)}</h2><div class="tw"><table><thead><tr><th>Categoría</th><th class="tl">Descripción</th><th>Monto</th><th></th></tr></thead><tbody>${day.map(g=>`<tr><td>${esc(g.cat)}</td><td class="tl">${esc(g.desc)}</td><td>${fmt(g.monto)}</td><td><button class="btn x" data-a="gedit" data-id="${g.id}" title="Editar" style="color:var(--pri)">✎</button><button class="btn x" data-a="gdel" data-id="${g.id}" title="Borrar">✕</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sin gastos este día</td></tr>'}</tbody><tfoot><tr><td>Total</td><td></td><td>${fmt(sumL(day))}</td><td></td></tr></tfoot></table></div></div>`;
+  h+=`<div class="grid2"><div class="card"><h2>Gastos del ${dmy(D)}</h2><div class="tw"><table><thead><tr><th>Categoría</th><th class="tl">Descripción</th><th>Monto</th><th></th></tr></thead><tbody>${day.map(g=>`<tr><td>${esc(g.cat)}</td><td class="tl">${esc(g.desc)}</td><td>${fmt(g.monto)}</td><td><button class="btn x" data-a="gedit" data-id="${g.id}" title="Editar" style="color:var(--pri)">${I('pencil')}</button><button class="btn x" data-a="gdel" data-id="${g.id}" title="Borrar">${I('x')}</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sin gastos este día</td></tr>'}</tbody><tfoot><tr><td>Total</td><td></td><td>${fmt(sumL(day))}</td><td></td></tr></tfoot></table></div></div>`;
   const mg=ag.gastos.filter(g=>g.fecha.startsWith(ym));const gc={};mg.forEach(g=>gc[g.cat]=(gc[g.cat]||0)+g.monto);const tot=sumL(mg);
   h+=`<div class="card"><h2>Resumen ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Categoría</th><th>Monto</th><th>%</th></tr></thead><tbody>${Object.entries(gc).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<tr><td>${esc(c)}</td><td>${fmt(v)}</td><td>${pctTxt(v/tot)}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Sin gastos</td></tr>'}</tbody><tfoot><tr><td>Total del mes</td><td>${fmt(tot)}</td><td></td></tr></tfoot></table></div></div></div>`;
   const byD={};mg.forEach(g=>(byD[g.fecha]=byD[g.fecha]||[]).push(g));
@@ -859,11 +917,11 @@ function vCierre(){
 }
 function vCierreDia(){
   const ag=AG(),D=S.date,ym=monthOf(D),cc=cierreCalc(ag,D),c=cc.c;
-  const list=(k,arr)=>`${(arr||[]).map((x,i)=>`<div class="ln"><input style="flex:1" data-c="cl" data-k="${k}" data-i="${i}" data-f="desc" value="${esc(x.desc)}" placeholder="Concepto">${money('cl',x.monto,`data-k="${k}" data-i="${i}" data-f="monto"`)}<button class="btn x" data-a="cldel" data-k="${k}" data-i="${i}">✕</button></div>`).join('')}<div style="padding:6px 0"><button class="btn sm ghost" data-a="cladd" data-k="${k}">+ Agregar línea</button></div>`;
+  const list=(k,arr)=>`${(arr||[]).map((x,i)=>`<div class="ln"><input style="flex:1" data-c="cl" data-k="${k}" data-i="${i}" data-f="desc" value="${esc(x.desc)}" placeholder="Concepto">${money('cl',x.monto,`data-k="${k}" data-i="${i}" data-f="monto"`)}<button class="btn x" data-a="cldel" data-k="${k}" data-i="${i}">${I('x')}</button></div>`).join('')}<div style="padding:6px 0"><button class="btn sm ghost" data-a="cladd" data-k="${k}">+ Agregar línea</button></div>`;
   let h='';
   if(lagOn()&&!cc.frozen&&D===fechaCaja()){const T=iso(new Date());const nD=ag.deudas.filter(x=>x.fecha===T).length,nP=allPrem(ag).filter(([,x])=>x.pf===T).length,nG=ag.gastos.filter(g=>g.fecha===T).length,nC=ag.cierres[T]?1:0;
     if(nD+nP+nG+nC)h+=`<div class="alert" data-keep>Hay registros con la fecha de <b>hoy (${dmy(T)})</b>, pero la caja de hoy es la del <b>${dmy(D)}</b>: ${[nD?nD+' deudas/pagos':'',nP?nP+' premios pagados':'',nG?nG+' gastos':'',nC?'un cierre':''].filter(Boolean).join(', ')}. <button class="btn sm" data-a="lagfix" style="margin-left:6px">Pasarlos al ${dm(D)}</button></div>`}
-  if(cc.frozen)h+=`<div class="alert ok" data-keep>🔒 <b>Día cerrado</b> el ${new Date(c.snap.fecha).toLocaleString('es-PY')}. Estos números quedan fijos aunque después cambien premios, deudas o gastos. Si hace falta, podés corregir el PNC a mano acá abajo. <button class="btn sm ghost" data-a="cunfreeze" style="margin-left:6px">Reabrir día</button></div>`;
+  if(cc.frozen)h+=`<div class="alert ok" data-keep>${I('lock')}<b>Día cerrado</b> el ${new Date(c.snap.fecha).toLocaleString('es-PY')}. Estos números quedan fijos aunque después cambien premios, deudas o gastos. Si hace falta, podés corregir el PNC a mano acá abajo. <button class="btn sm ghost" data-a="cunfreeze" style="margin-left:6px">Reabrir día</button></div>`;
   else if(D<fechaCaja()&&cc.exists)h+=`<div class="alert" data-keep>Este día todavía no está cerrado: sus números se recalculan si cambian premios, deudas, gastos o ventas. Cuando esté bien, tocá <b>"Cerrar el día"</b>. <button class="btn sm" data-a="cfreeze" style="margin-left:6px">Cerrar el día</button></div>`;
   else h+=`<div class="alert">Al terminar el día, tocá <b>"Cerrar el día"</b> (abajo) para que estos números queden fijos. Los premios pagados del día cuentan como efectivo hasta que se descuentan al día siguiente.</div>`;
   h+=`<div class="grid3"><div class="card"><h2>Ingresos<span class="sp"></span>${cc.pncAutoA&&cc.pncAutoP?'':`<button class="btn sm ghost" data-a="pnccopy" title="Copiar PNC del último cierre">Copiar PNC anterior</button>`}</h2><div class="lines">
@@ -884,11 +942,11 @@ function vCierreDia(){
   h+=`<div class="card"><h2>Arqueo de efectivo</h2><div class="tw"><table><thead><tr><th>Billete</th><th>Cantidad</th><th>Monto</th></tr></thead><tbody>${BILL.map(d=>`<tr><td>${fmt(d)}</td><td><input class="num" inputmode="numeric" data-c="cq" data-k="b${d}" value="${c['b'+d]||''}" placeholder="0"></td><td>${fmt((c['b'+d]||0)*d)}</td></tr>`).join('')}<tr><td colspan="2"><b>Total billetes</b></td><td><b>${fmt(cc.aq.b)}</b></td></tr>${MON.map(d=>`<tr><td>Moneda ${fmt(d)}</td><td><input class="num" inputmode="numeric" data-c="cq" data-k="m${d}" value="${c['m'+d]||''}" placeholder="0"></td><td>${fmt((c['m'+d]||0)*d)}</td></tr>`).join('')}<tr><td colspan="2">Monedas (monto directo)</td><td>${money('cf',c.monedasMonto,'data-k="monedasMonto"')}</td></tr></tbody><tfoot><tr><td colspan="2">Total efectivo</td><td>${fmt(cc.aq.t)}</td></tr></tfoot></table></div></div></div>`;
   {const L=(ag.premDia||{})[D]||[];
   h+=`<div class="card"><h2>Tickets de premios pagados del día · ${dmy(D)}<span class="sp"></span><span class="note">La suma va a "Premios pagados del día" (egresos)</span></h2><div class="tw"><table><thead><tr><th>#</th><th>Corredor</th><th>Sorteo</th><th class="tl">N° de ticket</th><th>Premio</th><th></th></tr></thead><tbody>
-   ${L.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.c)||'—'}</b></td><td>${x.s}</td><td class="tl">${esc(x.b)}</td><td>${fmt(x.m)}</td><td><button class="btn x" data-a="pddel" data-i="${i}">✕</button></td></tr>`).join('')}
+   ${L.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.c)||'—'}</b></td><td>${x.s}</td><td class="tl">${esc(x.b)}</td><td>${fmt(x.m)}</td><td><button class="btn x" data-a="pddel" data-i="${i}">${I('x')}</button></td></tr>`).join('')}
    <tr class="pentry"><td></td><td><input id="pdc" class="num pd-in" inputmode="numeric" placeholder="Corr. (Web: vacío)"></td><td><select id="pds" class="pd-in">${SORTEOS.map(n=>`<option>${n}</option>`).join('')}<option>Web</option></select></td><td class="tl"><input id="pdb" class="pd-in" style="width:190px" placeholder="A-1110537014001"></td><td><input id="pdm" class="money pd-in" inputmode="numeric" placeholder="0"></td><td><button class="btn sm" data-a="pdadd">Agregar</button></td></tr></tbody>
    <tfoot><tr><td colspan="4">Total · ${L.length} ticket(s)</td><td>${fmt(L.reduce((s,x)=>s+(x.m||0),0))}</td><td></td></tr></tfoot></table></div><p class="note">Corredor → Enter → sorteo → Enter → ticket → Enter → premio → Enter. Si no cargás tickets, podés escribir el total a mano en Egresos.</p></div>`;}
   h+=`<div class="card"><h2>Resultado del ${dmy(D)}</h2><div class="dif ${cc.dif>=0?'pos':'neg'}">${cc.dif>=0?'Diferencia a favor':'Déficit'}: ${gs(Math.abs(cc.dif))}</div>
-   <div class="row" style="margin-top:10px"><label style="flex:1">Nota del día<input data-c="cf" data-k="nota" data-t="txt" data-keep value="${esc(c.nota||'')}" placeholder="Observaciones"></label>${cc.frozen?`<button class="btn ghost" data-a="cunfreeze" data-keep style="align-self:flex-end">Reabrir día</button>`:`<button class="btn" data-a="cfreeze" style="align-self:flex-end">🔒 Cerrar el día</button>`}<button class="btn ghost" data-a="cprint" data-keep style="align-self:flex-end">🖨 Imprimir cierre</button><button class="btn ghost" data-a="smail" data-k="cierre" data-keep style="align-self:flex-end">📧 Enviar por mail</button>${cc.exists&&!cc.frozen?`<button class="btn sm ghost" data-a="cmove" style="align-self:flex-end">Pasar este cierre a otra fecha</button><button class="btn sm danger" data-a="cdel" style="align-self:flex-end">Borrar cierre del día</button>`:''}</div></div>`;
+   <div class="row" style="margin-top:10px"><label style="flex:1">Nota del día<input data-c="cf" data-k="nota" data-t="txt" data-keep value="${esc(c.nota||'')}" placeholder="Observaciones"></label>${cc.frozen?`<button class="btn ghost" data-a="cunfreeze" data-keep style="align-self:flex-end">Reabrir día</button>`:`<button class="btn" data-a="cfreeze" style="align-self:flex-end">${I('lock')}Cerrar el día</button>`}<button class="btn ghost" data-a="cprint" data-keep style="align-self:flex-end">${I('printer')}Imprimir cierre</button><button class="btn ghost" data-a="smail" data-k="cierre" data-keep style="align-self:flex-end">${I('mail')}Enviar por mail</button>${cc.exists&&!cc.frozen?`<button class="btn sm ghost" data-a="cmove" style="align-self:flex-end">Pasar este cierre a otra fecha</button><button class="btn sm danger" data-a="cdel" style="align-self:flex-end">Borrar cierre del día</button>`:''}</div></div>`;
   // tabla mensual
   const dates=Object.keys(ag.cierres).filter(d=>d.startsWith(ym)).sort();
   h+=`<div class="card"><h2>Cierres de ${mesTxt(ym)}</h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Ingresos</th><th>Egresos</th><th>Premios</th><th>Efectivo</th><th>Diferencia</th><th class="tl">Nota</th></tr></thead><tbody>${dates.map(d=>{const x=cierreCalc(ag,d);return`<tr class="click ${d===D?'sel':''}" data-a="goto" data-d="${d}"><td>${dmy(d)}</td><td>${fmt(x.ing)}</td><td>${fmt(x.egr)}</td><td>${fmt(x.c.premios||0)}</td><td>${fmt(x.aq.t)}</td><td class="${x.dif>=0?'pos':'neg'}"><b>${fmt(x.dif)}</b></td><td class="tl mut">${esc(x.c.nota||'')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sin cierres este mes</td></tr>'}</tbody></table></div></div>`;
@@ -910,11 +968,11 @@ function vDeudas(){
   const sal=deudaSaldos(ag,D).filter(o=>!cf||o.cobrador===cf);const posteriores=ag.deudas.filter(x=>x.fecha>D).length;const ab=sal.filter(o=>o.saldo>0).sort((a,b)=>b.saldo-a.saldo);
   const porCob={};ab.forEach(o=>porCob[o.cobrador]=(porCob[o.cobrador]||0)+o.saldo);
   h+=`<div class="kpis">${kpi(`Total adeudado al ${dm(D)}`,gs(ab.reduce((s,o)=>s+o.saldo,0)),`${ab.length} corredores con saldo`)}${Object.entries(porCob).map(([c,v])=>kpi(esc(c),gs(v))).join('')}</div>`;
-  h+=`<div class="grid2"><div class="card"><h2>Saldos abiertos al ${dmy(D)}${posteriores?` <span class="badge warn" title="Movimientos con fecha posterior al ${dmy(D)} que no se cuentan acá">${posteriores} mov. posteriores</span>`:''}</h2><div class="tw"><table><thead><tr><th>Corredor</th><th class="tl">Cobrador</th><th>Deuda</th><th>Pagado</th><th>Saldo</th><th>Último mov.</th><th></th></tr></thead><tbody>${ab.map(o=>`<tr><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td>${fmt(o.deuda)}</td><td>${fmt(o.pagado)}</td><td class="neg"><b>${fmt(o.saldo)}</b></td><td>${dmy(o.last)}</td><td><button class="btn sm ghost" data-a="dsaldar" data-k="${esc(o.corredor)}">Saldar</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nadie debe nada 👍</td></tr>'}</tbody></table></div></div>`;
+  h+=`<div class="grid2"><div class="card"><h2>Saldos abiertos al ${dmy(D)}${posteriores?` <span class="badge warn" title="Movimientos con fecha posterior al ${dmy(D)} que no se cuentan acá">${posteriores} mov. posteriores</span>`:''}</h2><div class="tw"><table><thead><tr><th>Corredor</th><th class="tl">Cobrador</th><th>Deuda</th><th>Pagado</th><th>Saldo</th><th>Último mov.</th><th></th></tr></thead><tbody>${ab.map(o=>`<tr><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td>${fmt(o.deuda)}</td><td>${fmt(o.pagado)}</td><td class="neg"><b>${fmt(o.saldo)}</b></td><td>${dmy(o.last)}</td><td><button class="btn sm ghost" data-a="dsaldar" data-k="${esc(o.corredor)}">Saldar</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nadie debe nada</td></tr>'}</tbody></table></div></div>`;
   const rk=[...sal].sort((a,b)=>b.n-a.n||b.deuda-a.deuda).slice(0,15);
   h+=`<div class="card"><h2>Corredores más recurrentes</h2><div class="tw"><table><thead><tr><th>#</th><th>Corredor</th><th class="tl">Cobrador</th><th>Veces</th><th>Total adeudado</th><th class="tl">Motivos</th></tr></thead><tbody>${rk.map((o,i)=>`<tr><td>${i+1}</td><td><b>${esc(o.corredor)}</b></td><td class="tl">${esc(o.cobrador)}</td><td><span class="badge ${o.n>=5?'bad':o.n>=3?'warn':''}">${o.n}</span></td><td>${fmt(o.deuda)}</td><td class="tl mut">${Object.entries(o.motivos).map(([m,n])=>esc(m)+' ×'+n).join(', ')}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sin registros</td></tr>'}</tbody></table></div></div></div>`;
   const fil=S.dFil.trim();const corrs=new Set(sal.map(o=>o.corredor));const mov=ag.deudas.filter(x=>(!cf||corrs.has(String(x.corredor).trim()))&&(fil?String(x.corredor).trim()===fil:x.fecha.startsWith(ym))).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  h+=`<div class="card"><h2>Movimientos ${fil?'del corredor '+esc(fil):'de '+mesTxt(ym)}<span class="sp"></span><label class="row" style="font-size:12px;color:var(--muted)">Buscar corredor <input id="dfil" class="num" value="${esc(S.dFil)}" data-c="dfil"></label></h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Corredor</th><th class="tl">Cobrador</th><th class="tl">Tipo</th><th>Monto</th><th class="tl">Referencia</th><th></th></tr></thead><tbody>${mov.map(x=>`<tr><td class="${x.fecha>D?'mut':''}">${dmy(x.fecha)}</td><td><b>${esc(x.corredor)}</b></td><td class="tl">${esc(x.cobrador)}</td><td class="tl">${x.tipo==='pago'?'<span class="badge ok">Pago</span>':`<span class="badge bad">${esc(x.motivo)}</span>`}</td><td>${fmt(x.monto)}</td><td class="tl mut">${esc(x.ref||'')}</td><td style="white-space:nowrap"><button class="btn x" data-a="dedit" data-id="${x.id}" title="Cambiar fecha o monto" style="color:var(--pri)">✎</button><button class="btn x" data-a="ddel" data-id="${x.id}">✕</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin movimientos</td></tr>'}</tbody></table></div></div>`;
+  h+=`<div class="card"><h2>Movimientos ${fil?'del corredor '+esc(fil):'de '+mesTxt(ym)}<span class="sp"></span><label class="row" style="font-size:12px;color:var(--muted)">Buscar corredor <input id="dfil" class="num" value="${esc(S.dFil)}" data-c="dfil"></label></h2><div class="tw"><table><thead><tr><th>Fecha</th><th>Corredor</th><th class="tl">Cobrador</th><th class="tl">Tipo</th><th>Monto</th><th class="tl">Referencia</th><th></th></tr></thead><tbody>${mov.map(x=>`<tr><td class="${x.fecha>D?'mut':''}">${dmy(x.fecha)}</td><td><b>${esc(x.corredor)}</b></td><td class="tl">${esc(x.cobrador)}</td><td class="tl">${x.tipo==='pago'?'<span class="badge ok">Pago</span>':`<span class="badge bad">${esc(x.motivo)}</span>`}</td><td>${fmt(x.monto)}</td><td class="tl mut">${esc(x.ref||'')}</td><td style="white-space:nowrap"><button class="btn x" data-a="dedit" data-id="${x.id}" title="Cambiar fecha o monto" style="color:var(--pri)">${I('pencil')}</button><button class="btn x" data-a="ddel" data-id="${x.id}">${I('x')}</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin movimientos</td></tr>'}</tbody></table></div></div>`;
   return h;
 }
 
@@ -959,7 +1017,7 @@ function vMetas(){
 /* ====================== AJUSTES ====================== */
 function vAjustes(){
   const ag=AG();
-  const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'||cls==='tel'?'inputmode="numeric"':''} ${cls==='tel'?'placeholder="0981 123 456" style="width:130px"':cls==='alias'?'style="width:90px"':cls==='hoja'?'inputmode="numeric" style="width:55px;text-align:center"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">✕</button></td></tr>`).join('');
+  const rowsList=(arr,pre,fields)=>arr.map((x,i)=>`<tr>${fields.map(([f,cls])=>`<td class="tl"><input class="${cls}" ${cls==='money'||cls==='tel'?'inputmode="numeric"':''} ${cls==='tel'?'placeholder="0981 123 456" style="width:130px"':cls==='alias'?'style="width:90px"':cls==='hoja'?'inputmode="numeric" style="width:55px;text-align:center"':''} data-c="${pre}" data-i="${i}" data-f="${f}" value="${cls==='money'?fmt(x[f]):cls==='pct'?pf(x[f],3):esc(x[f])}"></td>`).join('')}<td><button class="btn x" data-a="ldel" data-l="${pre}" data-i="${i}">${I('x')}</button></td></tr>`).join('');
   let h=`<div class="sectitle">Ajustes de ${esc(ag.name)}</div><div class="grid2"><div class="card"><h2>Agencia</h2><div class="row"><label style="flex:1">Nombre<input data-c="agname" value="${esc(ag.name)}"></label></div></div>
   <div class="card"><h2>Respaldo en archivo</h2><div class="row"><button class="btn" data-a="bkexp">Descargar backup</button><button class="btn ghost" data-a="bkimp">Restaurar / importar archivo</button>${navigator.canShare?`<button class="btn ghost" data-a="bkshare">Compartir…</button>`:''}</div><p class="note">El backup incluye las dos agencias. También podés importar archivos de datos (por ejemplo, el de octubre) que se suman a lo que ya tenés.</p></div></div>
   <div class="grid2"><div class="card"><h2>Copias en este equipo<span class="sp"></span><button class="btn sm ghost" data-a="snapnow">Crear copia ahora</button></h2><div id="snaplist" class="note">Cargando…</div><p class="note">Se guardan solas las <b>últimas 3 copias</b> en esta PC o celular: una automática por día al abrir la app, y otra antes de cada restauración.</p></div>
@@ -972,13 +1030,13 @@ function vAjustes(){
   <p class="note">Suma actual: ${pf(ag.cobradores.reduce((s,c)=>s+(+c.share||0),0))}%. "Hoja N°" define qué cobradores se imprimen juntos en la misma hoja A4 de Cobros.</p>
   <h3>Corredores de cada cobrador</h3>${ag.cobradores.map(c=>{const l=Object.keys(ag.mapeo||{}).filter(k=>ag.mapeo[k]===c.name).sort((a,b)=>a-b);return`<label class="note" style="display:block;margin-top:6px"><b>${esc(c.name)}</b> · ${l.length} corredores<textarea data-c="mapc" data-n="${esc(c.name)}" style="min-height:44px">${l.join(', ')}</textarea></label>`}).join('')}
   <p class="note">Escribí los N° separados por coma. Si un número está en dos cobradores, queda en el último que guardaste.</p>
-  <h3>Categorías de gastos</h3><div class="chips">${ag.gastoCats.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="gastoCats" data-i="${i}">✕</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newcat" placeholder="Nueva categoría"><button class="btn sm ghost" data-a="chadd" data-l="gastoCats" data-in="newcat">Agregar</button></div>
-  <h3>Motivos de deuda</h3><div class="chips">${ag.motivos.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="motivos" data-i="${i}">✕</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newmot" placeholder="Nuevo motivo"><button class="btn sm ghost" data-a="chadd" data-l="motivos" data-in="newmot">Agregar</button></div></div></div>
+  <h3>Categorías de gastos</h3><div class="chips">${ag.gastoCats.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="gastoCats" data-i="${i}">${I('x')}</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newcat" placeholder="Nueva categoría"><button class="btn sm ghost" data-a="chadd" data-l="gastoCats" data-in="newcat">Agregar</button></div>
+  <h3>Motivos de deuda</h3><div class="chips">${ag.motivos.map((c,i)=>`<span class="chip">${esc(c)}<button data-a="chdel" data-l="motivos" data-i="${i}">${I('x')}</button></span>`).join('')}</div><div class="row" style="margin-top:6px"><input id="newmot" placeholder="Nuevo motivo"><button class="btn sm ghost" data-a="chadd" data-l="motivos" data-in="newmot">Agregar</button></div></div></div>
   <div class="grid2"><div class="card"><h2>Comisión RK de cobradores</h2><div class="row"><label>Tasa base %<input class="pct" data-c="rkbase" value="${pf(ag.rk.base,3)}"></label></div><h3>Escalones (meta de agencia → tasa)</h3><div class="tw"><table><thead><tr><th>Meta agencia desde</th><th class="tl">Tasa %</th><th></th></tr></thead><tbody>${rowsList(ag.rk.tiers,'ltier',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="ltier" style="margin-top:8px">+ Escalón</button><p class="note">La meta individual de cada cobrador = meta de agencia × su participación.</p></div>
   <div class="card"><h2>Escala de metas de la agencia</h2><div class="tw"><table><thead><tr><th>Meta desde</th><th class="tl">%</th><th></th></tr></thead><tbody>${rowsList(ag.escala,'lesc',[['meta','money'],['pct','pct']])}</tbody></table></div><button class="btn sm ghost" data-a="ladd" data-l="lesc" style="margin-top:8px">+ Meta</button>
   <div class="row" style="margin-top:12px"><label>Comisión agencia Quiniela %<input class="pct" data-c="capct" value="${pf(ag.comAgPct,3)}"></label><label>Sueldos + gastos %<input class="pct" data-c="sgpct" value="${pf(ag.sueldosPct,3)}"></label></div></div></div>
   <div class="card"><h2>Correo</h2><div class="row"><label style="flex:1">Destinatarios por defecto (separados por coma)<input data-c="mailset" value="${esc(DB.settings.mailTo||'')}" placeholder="auditor@ejemplo.com"></label></div>
-  <p class="note">Los botones <b>📧 Enviar por mail</b> mandan la hoja en PDF. Si cargaste el ID de cliente de Google (sección Google Drive) y activaste la <b>Gmail API</b> en tu proyecto de Google Cloud, se envía directo desde tu Gmail. Si no, la app descarga el PDF y abre tu programa de correo para que lo adjuntes.</p></div>
+  <p class="note">Los botones <b>${I('mail')}Enviar por mail</b> mandan la hoja en PDF. Si cargaste el ID de cliente de Google (sección Google Drive) y activaste la <b>Gmail API</b> en tu proyecto de Google Cloud, se envía directo desde tu Gmail. Si no, la app descarga el PDF y abre tu programa de correo para que lo adjuntes.</p></div>
   <div class="card"><h2>Fecha de trabajo</h2><label class="row" style="gap:8px"><input type="checkbox" data-c="lagset" ${lagOn()?'checked':''}> Trabajar con un día de retraso (la app arranca en la fecha de ayer; los lunes queda en el domingo, que junta sábado y domingo)</label><p class="note">Todo lo que se registra (ventas, cobros, premios pagados, deudas, gastos, depósitos y cierre) queda con la fecha de arriba.</p></div>
   <div class="card"><h2>Zona peligrosa</h2><button class="btn danger" data-a="reset">Borrar todos los datos de ${esc(ag.name)}</button> <span class="note">Descargá un backup antes.</span></div>`;
   return h;
@@ -1253,6 +1311,7 @@ document.addEventListener('drop',async e=>{if(S.tab!=='premios')return;e.prevent
 document.addEventListener('change',e=>{if(e.target.id==='pall')document.querySelectorAll('.psel').forEach(c=>c.checked=e.target.checked)});
 load();S.date=fechaCaja();render();autoSnap();
 if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+(function(){const set=()=>{const h=document.querySelector('header'),n=document.getElementById('tabs'),r=document.documentElement.style;r.setProperty('--hh',h.offsetHeight+'px');r.setProperty('--nh',n.offsetHeight+'px')};set();if(window.ResizeObserver){const ro=new ResizeObserver(set);ro.observe(document.querySelector('header'));ro.observe(document.getElementById('tabs'))}else addEventListener('resize',set)})();
 </script>
 </body>
 </html>
